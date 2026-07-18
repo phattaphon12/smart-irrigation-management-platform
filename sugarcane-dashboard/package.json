@@ -1,0 +1,24 @@
+{
+  "name": "sugarcane-field-monitor",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sugarcane field monitoring dashboard — soil moisture (Watermark 200SS) + FAO-56 ET/ETc, Sa Bua Kam plot.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "vite": "^5.4.0"
+  }
+}
