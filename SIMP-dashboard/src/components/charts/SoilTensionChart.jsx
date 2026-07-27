@@ -44,6 +44,29 @@ const AWC_LINES = [
 const VIEW_LABEL = { kpa: 'kPa', vwc: 'VWC', awc: '%AWC' };
 const VIEW_UNIT = { kpa: ' kPa', vwc: '', awc: ' %AWC' };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Labels are "YYYY-MM-DD" (no time recorded) or "YYYY-MM-DDTHH:MM:SS" (soil node
+// readings, several a day) — split on 'T' rather than going through Date/timezone
+// parsing so the string's own wall-clock time is shown verbatim either way.
+function splitLabel(label) {
+  const [datePart, timePart] = label.split('T');
+  return { datePart, timePart };
+}
+
+function formatAxisTick(label) {
+  const { datePart, timePart } = splitLabel(label);
+  const md = datePart.slice(5); // "MM-DD"
+  return timePart ? `${md} ${timePart.slice(0, 5)}` : md;
+}
+
+function formatTooltipTitle(label) {
+  const { datePart, timePart } = splitLabel(label);
+  const [y, m, d] = datePart.split('-').map(Number);
+  const dateStr = `${d} ${MONTHS[m - 1]} ${y}`;
+  return timePart ? `${dateStr}, ${timePart.slice(0, 5)}` : dateStr;
+}
+
 const H = SOIL_CHART_HEIGHT + MARGIN_TOP + MARGIN_BOTTOM;
 
 export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewMode, nodeIds, controls }) {
@@ -197,7 +220,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
               <g key={i}>
                 <line x1={xToPx(i)} y1={MARGIN_TOP} x2={xToPx(i)} y2={MARGIN_TOP + SOIL_CHART_HEIGHT} stroke="#e2e8f0" />
                 <text x={xToPx(i)} y={MARGIN_TOP + SOIL_CHART_HEIGHT + 22} fill="#64748b" fontSize="11" fontWeight="500" textAnchor="middle">
-                  {labels[i]?.substring(5)}
+                  {labels[i] && formatAxisTick(labels[i])}
                 </text>
               </g>
             ))}
@@ -257,7 +280,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
           visible={!!hover && tooltipLines.length > 0}
           x={hover?.mouseX ?? 0}
           y={hover?.mouseY ?? 0}
-          title={hover ? labels[hover.idx] : ''}
+          title={hover ? formatTooltipTitle(labels[hover.idx]) : ''}
           lines={tooltipLines}
         />
       </div>

@@ -24,7 +24,7 @@ export default function App() {
 
   const nodeSelection = useNodeSelection(soilNodes);
   const weatherToggle = useWeatherSeriesToggle();
-  const labels = useTimelineLabels(soilNodes, weatherSummary, waterBalance);
+  const labels = useTimelineLabels(soilNodes);
   const { range: timeRange, setRange: setTimeRange, cutoffDate, filteredLabels } = useTimeRange(labels);
   const filteredWeatherSummary = filterWeatherSummary(weatherSummary, cutoffDate);
   const filteredWaterBalance = filterWaterBalance(waterBalance, cutoffDate);

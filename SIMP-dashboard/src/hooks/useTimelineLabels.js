@@ -1,15 +1,14 @@
 import { useMemo } from 'react';
 
 /**
- * รวมวันที่ทั้งหมดจาก soil nodes + weather summary + water balance เป็นแกนเวลาเดียว (เรียงแล้ว)
- * ตรงกับแนวคิด `allDates` / `labels` ในไฟล์เดิม
+ * แกนเวลาของกราฟ Soil Tension — รวมเฉพาะ timestamp จาก soil nodes เท่านั้น (ไม่รวม weather/water
+ * balance ซึ่งมีแกนเวลาของตัวเองอยู่แล้วและเป็นรายวัน ในขณะที่ soil node เป็น timestamp ละเอียดถึงเวลา
+ * — ผสมกันจะทำให้แกน x ของกราฟ soil ถูกดึงไปครอบคลุมช่วงวันที่ของ weather ที่ไม่เกี่ยวข้องด้วย)
  */
-export function useTimelineLabels(soilNodes, weatherSummary, waterBalance) {
+export function useTimelineLabels(soilNodes) {
   return useMemo(() => {
-    const dateSet = new Set();
-    Object.values(soilNodes).forEach((node) => node.timestamps.forEach((t) => dateSet.add(t)));
-    weatherSummary.timestamps.forEach((t) => dateSet.add(t));
-    waterBalance.timestamps.forEach((t) => dateSet.add(t));
-    return [...dateSet].sort();
-  }, [soilNodes, weatherSummary, waterBalance]);
+    const timestampSet = new Set();
+    Object.values(soilNodes).forEach((node) => node.timestamps.forEach((t) => timestampSet.add(t)));
+    return [...timestampSet].sort();
+  }, [soilNodes]);
 }

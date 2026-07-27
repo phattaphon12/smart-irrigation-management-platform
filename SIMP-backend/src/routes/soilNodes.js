@@ -26,10 +26,13 @@ router.get('/', async (_req, res) => {
     );
     const { rows: logRows } = await pool.query(
       // recorded_at is stored as timestamptz (UTC instant) — AT TIME ZONE 'Asia/Bangkok'
-      // shifts it to Bangkok wall-clock time *before* truncating to a date, so a reading
-      // taken at e.g. 2026-07-27 01:00 Bangkok (= 2026-07-26 18:00 UTC) lands on the
-      // correct calendar day instead of the previous one
-      `SELECT node_id, kpa, vwc, awc, battery, to_char(recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD') AS date
+      // shifts it to Bangkok wall-clock time before formatting, so a reading taken at
+      // e.g. 2026-07-27 01:00 Bangkok (= 2026-07-26 18:00 UTC) lands on the correct
+      // calendar day. Keeping HH24:MI:SS (not truncating to just the date) matters
+      // once readings come in more than once a day — truncating to date collapses
+      // every same-day reading onto one timestamps[] entry, silently dropping all but
+      // the last one for that day.
+      `SELECT node_id, kpa, vwc, awc, battery, to_char(recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD"T"HH24:MI:SS') AS date
        FROM node_log ORDER BY node_id, recorded_at ASC`
     );
 

@@ -13,7 +13,10 @@ export function useTimeRange(labels) {
   const cutoffDate = useMemo(() => {
     const days = RANGE_DAYS[range];
     if (days == null || labels.length === 0) return null;
-    const latest = new Date(`${labels[labels.length - 1]}T00:00:00Z`);
+    // labels may be plain dates ("2026-07-27") or full timestamps
+    // ("2026-07-27T00:31:29") — only the date portion anchors the cutoff.
+    const latestDate = labels[labels.length - 1].slice(0, 10);
+    const latest = new Date(`${latestDate}T00:00:00Z`);
     latest.setUTCDate(latest.getUTCDate() - (days - 1));
     return latest.toISOString().slice(0, 10);
   }, [range, labels]);
