@@ -32,24 +32,43 @@ services:
       - db
       - mqtt
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
-      MQTT_HOST: mqtt
-      MQTT_PORT: 1883
-    ports:
-      - "127.0.0.1:3000:3000"
+      PORT: 4000
+      CORS_ORIGIN: http://simp.eng.kmitl.ac.th
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${APP_DB_USER}
+      PGPASSWORD: ${APP_DB_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      AMBIENT_API_KEY: ${AMBIENT_API_KEY}
+      AMBIENT_APPLICATION_KEY: ${AMBIENT_APPLICATION_KEY}
+      AMBIENT_STATION_MAC: ${AMBIENT_STATION_MAC}
+    expose:
+      - "4000"
 
   frontend:
-    build: ./SIMP-dashboard
+    build:
+      context: ./SIMP-dashboard
+      args:
+        VITE_BACKEND_URL: http://simp.eng.kmitl.ac.th
+        VITE_USE_LIVE_WEATHER: "true"
     container_name: frontend-simp
     restart: always
     depends_on:
       - backend
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-simp
+    restart: always
+    depends_on:
+      - backend
+      - frontend
     ports:
       - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   postgres_data:
