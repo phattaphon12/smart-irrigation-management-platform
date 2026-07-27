@@ -87,7 +87,7 @@ router.get('/history', async (req, res) => {
     const devices = await fetchWithRetry(`${BASE_URL}/devices?${authQuery()}`);
     const lastDateutc = devices?.[0]?.lastData?.dateutc;
     if (!lastDateutc) {
-      return res.status(502).json({ error: 'ไม่พบ lastData.dateutc จากสถานี — ตรวจสอบการตั้งค่าที่หน้า Settings' });
+      return res.status(502).json({ error: 'No lastData.dateutc from the station — check the settings on the Settings page' });
     }
 
     const newestCached = getNewestCachedTimestamp();

@@ -1,10 +1,12 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
-export async function fetchLogs({ nodeCode, limit = 50, offset = 0 } = {}) {
+export async function fetchLogs({ nodeCode, limit = 50, offset = 0, sort, dir } = {}) {
   const url = new URL(`${BACKEND_URL}/api/logs`);
   if (nodeCode) url.searchParams.set('node_code', nodeCode);
   url.searchParams.set('limit', limit);
   url.searchParams.set('offset', offset);
+  if (sort) url.searchParams.set('sort', sort);
+  if (dir) url.searchParams.set('dir', dir);
 
   const res = await fetch(url);
   const body = await res.json().catch(() => null);
@@ -17,6 +19,17 @@ export async function deleteLog(id) {
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new Error(body?.error || `Backend error: HTTP ${res.status}`);
   return body;
+}
+
+export async function bulkDeleteLogs(ids) {
+  const res = await fetch(`${BACKEND_URL}/api/logs/bulk-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error || `Backend error: HTTP ${res.status}`);
+  return body; // { ok, deleted }
 }
 
 export async function recalculateLog(id) {

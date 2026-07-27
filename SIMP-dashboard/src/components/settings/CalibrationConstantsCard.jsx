@@ -103,6 +103,48 @@ export default function CalibrationConstantsCard() {
       <div className="cc">
         {loadError && <div className="settings-status err">Failed to load calibration constants: {loadError}</div>}
 
+        <details className="calib-help">
+          <summary>How this formula works — what to enter and why</summary>
+          <div className="calib-help-note">
+            Every raw ADC reading is run through four steps, in order, to get kPa → VWC → %AWC.
+            Changing a value here only affects <strong>new</strong> readings right away — to re-apply it to
+            existing history, use Recalculate / Recalculate All on the Log Management page.
+          </div>
+          <ol>
+            <li>
+              <strong>ADC → Resistance (kΩ)</strong> — <code>R = r_divider_kohm × (adc_max ÷ ADC − 1)</code>
+              <ul>
+                <li><b>Divider resistor (kΩ)</b>: the fixed resistor value in the node's voltage-divider circuit — comes from the hardware/datasheet, not something to tune by feel.</li>
+                <li><b>ADC max</b>: the ADC's full-scale value (4095 for a 12-bit ADC). Only change this if the sensor board's ADC resolution changes.</li>
+                <li><b>ADC valid min</b>: raw ADC readings at or below this are treated as an open circuit (sensor disconnected) and kPa/VWC/%AWC come back empty. Raise it if disconnected sensors still produce believable readings; lower it if valid dry readings are being rejected.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Resistance → kPa</strong> (Shock &amp; Seddigh equation, Watermark 200SS) — <code>kPa = max((a×R + b) ÷ (1 − d×T − c×R), kPa clip min)</code>
+              <ul>
+                <li><b>a, b, c, d</b>: regression coefficients from the sensor's published calibration equation — leave as-is unless re-fitting against a lab reference for a different sensor model or batch.</li>
+                <li><b>Assumed soil temp (°C)</b>: soil temperature used in the correction term (there's no live temperature input yet) — set to the field's typical soil temperature.</li>
+                <li><b>kPa clip min</b>: a floor value — the raw equation can return unrealistically low kPa in very wet soil, so results are clamped up to this.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>kPa → VWC</strong> (Van Genuchten retention curve) — <code>VWC = θr + (θs − θr) ÷ (1 + (α×|kPa|)^n)^(1−1/n)</code>
+              <ul>
+                <li><b>θr (residual)</b>: the VWC the soil never drops below, however dry.</li>
+                <li><b>θs (saturated)</b>: the VWC at full saturation.</li>
+                <li><b>α, n</b>: curve-shape parameters from a soil-specific Van Genuchten fit (usually from a soil lab or texture lookup table) — should match the field's soil type rather than be tuned freely.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>VWC → %AWC</strong> (Available Water Capacity — the usable-water range remaining) — <code>%AWC = (VWC − wilting point) ÷ available water capacity × 100</code>
+              <ul>
+                <li><b>Wilting point VWC</b>: VWC at the permanent wilting point (0% AWC — plants can no longer extract water).</li>
+                <li><b>Available water capacity</b>: the usable water range (field-capacity VWC minus wilting-point VWC) — the denominator, so 100% AWC lines up with field capacity.</li>
+              </ul>
+            </li>
+          </ol>
+        </details>
+
         {!loadError && current == null ? (
           <div className="node-table-empty">Loading…</div>
         ) : mode === 'view' ? (

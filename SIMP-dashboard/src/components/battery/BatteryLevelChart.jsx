@@ -54,7 +54,7 @@ export default function BatteryLevelChart({ nodeIds, soilNodes }) {
                 textAnchor="middle"
                 transform={`rotate(-40, ${xx + innerBarW / 2}, 212)`}
               >
-                {nodeId.replace('Node_', 'N')}
+                {nodeId.replace('Node_', 'S')}
               </text>
               <rect
                 x={MARGIN_LEFT + barGroupW * idx}

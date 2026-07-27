@@ -73,7 +73,7 @@ export default function SettingsPage() {
   return (
     <div className="settings-page">
       <div className="settings-page-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="settings-top-grid">
         <div className="chart-card">
           <div className="chart-hd">
             <div>

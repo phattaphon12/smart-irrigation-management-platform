@@ -5,7 +5,7 @@ function elapsedLabel(startedAt) {
   const secs = Math.round((Date.now() - startedAt) / 1000);
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  return m > 0 ? `${m} นาที ${s} วิ` : `${s} วิ`;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 export default function WeatherLoadingCard({ progress }) {
@@ -26,15 +26,15 @@ export default function WeatherLoadingCard({ progress }) {
       </div>
       <div className="weather-loading">
         <div className="spinner" />
-        <div className="weather-loading-title">กำลังดึงข้อมูลสภาพอากาศจากสถานี…</div>
+        <div className="weather-loading-title">Fetching weather data from the station…</div>
         <div className="weather-loading-detail">
           {progress?.recordsFetched
-            ? `ดึงแล้ว ${progress.recordsFetched.toLocaleString()} records`
-            : 'กำลังเชื่อมต่อสถานี…'}
+            ? `Fetched ${progress.recordsFetched.toLocaleString()} records`
+            : 'Connecting to station…'}
           {progress?.startedAt && ` · ${elapsedLabel(progress.startedAt)}`}
         </div>
         <div className="weather-loading-hint">
-          การโหลดครั้งแรกอาจใช้เวลาถึง ~30 นาที (ข้อมูลย้อนหลัง 304 วัน) — ครั้งถัดไปจะเร็วขึ้นมากเพราะมี cache ไว้แล้ว
+          The first load can take up to ~30 minutes (304 days of history) — subsequent loads will be much faster thanks to caching.
         </div>
       </div>
     </div>

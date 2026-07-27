@@ -1,4 +1,5 @@
 import { colorForNodeIndex } from '../../utils/nodeColors';
+import { isNodeOffline } from '../../utils/nodeStatus';
 import { IconWarning } from '../icons/Icons';
 
 export default function NodeFilterPanel({
@@ -23,14 +24,14 @@ export default function NodeFilterPanel({
 
       <div className="fb">
         <div className="fb-actions">
-          <button className="f-btn" title="Select every sensor node" onClick={onSelectAll}>Select All</button>
-          <button className="f-btn" title="Deselect all nodes" onClick={onSelectNone}>Clear All</button>
+          <button className="f-btn" title="Select every sensor" onClick={onSelectAll}>Select All</button>
+          <button className="f-btn" title="Deselect all sensors" onClick={onSelectNone}>Clear All</button>
         </div>
         <div className="fb-actions">
-          <button className="f-btn" title="Select only nodes reporting normally" onClick={onSelectOk}>
+          <button className="f-btn" title="Select only sensors reporting normally" onClick={onSelectOk}>
             Normal
           </button>
-          <button className="f-btn" title="Select only nodes with issues (poor signal / erratic readings / very dry soil)" onClick={onSelectFlagged}>
+          <button className="f-btn" title="Select only sensors with issues (poor signal / erratic readings / very dry soil)" onClick={onSelectFlagged}>
             <IconWarning size={12} /> Flagged
           </button>
         </div>
@@ -45,22 +46,24 @@ export default function NodeFilterPanel({
       </div>
       <div className="node-grid">
         {nodeIds.map((nodeId, index) => {
-          const meta = soilNodes[nodeId].meta;
+          const node = soilNodes[nodeId];
+          const meta = node.meta;
           const dotClass = meta.depth === 20 ? 'dot-20' : meta.depth === 40 ? 'dot-40' : 'dot-spare';
           const isOn = activeNodes.has(nodeId);
+          const offline = isNodeOffline(node);
           return (
             <button
               key={nodeId}
-              className={`nb${isOn ? ' on' : ''}`}
+              className={`nb${isOn ? ' on' : ''}${offline ? ' nb-offline' : ''}`}
               style={{ '--nc': colorForNodeIndex(index) }}
-              title={`Treatment: ${meta.treatment} · Depth: ${meta.depth}cm · Status: ${meta.status}${meta.position ? ' · ' + meta.position : ''}`}
+              title={`Treatment: ${meta.treatment} · Depth: ${meta.depth}cm · Status: ${meta.status}${meta.position ? ' · ' + meta.position : ''}${offline ? ' · Offline (no data for over 1 hour)' : ''}`}
               onClick={() => onToggleNode(nodeId)}
             >
               <span className="nm" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 {meta.flagged && <IconWarning size={10} />}
-                {nodeId.replace('Node_', 'N')}
+                {nodeId.replace('Node_', 'S')}
               </span>
-              <span className={`depth-dot ${dotClass}`} />
+              {offline ? <span className="offline-tag">Offline</span> : <span className={`depth-dot ${dotClass}`} />}
             </button>
           );
         })}

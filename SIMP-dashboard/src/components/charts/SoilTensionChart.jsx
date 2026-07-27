@@ -9,6 +9,7 @@ import {
 } from '../../constants/chartLayout';
 import { xForIndex, yForValue } from '../../utils/svgScale';
 import { colorForNodeIndex } from '../../utils/nodeColors';
+import { isNodeOffline } from '../../utils/nodeStatus';
 import ChartTooltip from './ChartTooltip';
 
 const VIEW_RANGES = {
@@ -102,6 +103,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
         coords,
         points: coords.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),
         flagged: node.meta.flagged,
+        offline: isNodeOffline(node),
         byDate,
       };
     });
@@ -133,7 +135,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
       .filter((l) => l.byDate.get(labels[hover.idx]) != null)
       .map((l) => ({
         color: colorForNodeIndex(l.index),
-        label: l.id.replace('Node_', 'N'),
+        label: l.id.replace('Node_', 'S') + (l.offline ? ' (offline)' : ''),
         value: `${l.byDate.get(labels[hover.idx]).toFixed(viewMode === 'vwc' ? 4 : 1)}${VIEW_UNIT[viewMode]}`,
       }));
   }, [hover, lines, labels, viewMode]);
@@ -235,9 +237,9 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
                 points={l.points}
                 fill="none"
                 stroke={colorForNodeIndex(l.index)}
-                strokeWidth={l.flagged ? 1.5 : 2.5}
-                strokeOpacity={l.flagged ? 0.25 : 0.85}
-                strokeDasharray={l.flagged ? '4,4' : undefined}
+                strokeWidth={l.offline || l.flagged ? 1.5 : 2.5}
+                strokeOpacity={l.offline ? 0.15 : l.flagged ? 0.25 : 0.85}
+                strokeDasharray={l.offline || l.flagged ? '4,4' : undefined}
               />
             ) : null
           )}
@@ -250,9 +252,9 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
                 key={`${l.id}-${i}`}
                 cx={p.x}
                 cy={p.y}
-                r={l.flagged ? 2.5 : 3.5}
+                r={l.offline || l.flagged ? 2.5 : 3.5}
                 fill={colorForNodeIndex(l.index)}
-                fillOpacity={l.flagged ? 0.35 : 1}
+                fillOpacity={l.offline ? 0.2 : l.flagged ? 0.35 : 1}
                 stroke="#ffffff"
                 strokeWidth="1.2"
               />

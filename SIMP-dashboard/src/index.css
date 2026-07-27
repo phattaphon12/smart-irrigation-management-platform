@@ -249,6 +249,12 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .nb.on { color: var(--text-primary); font-weight: 700; box-shadow: inset 0 3px 0 var(--nc), var(--inset-sm); }
 .nb .nm { font-weight: 600; }
 
+/* Offline = no reading for over 1 hour (see utils/nodeStatus.js) — dim the
+   whole tile so it visually recedes, same idea as the chart line fading. */
+.nb-offline { opacity: 0.5; }
+.nb-offline .nm { color: var(--text-muted); }
+.offline-tag { font-size: 8px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted); }
+
 .depth-dot { width: 6px; height: 6px; border-radius: 5px; display: inline-block; }
 .dot-20 { background: var(--accent-green-dark); }
 .dot-40 { background: var(--accent-blue-dark); }
@@ -338,10 +344,12 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .bc-bot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
 .bc-pct { font-weight: 700; }
 .bc-days { color: var(--text-muted); font-weight: 500; }
+.bc-offline { opacity: 0.6; }
 .bdg { display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; }
 .bdg-ok { background: #dcfce7; color: #15803d; }
 .bdg-warn { background: #fef3c7; color: #b45309; }
 .bdg-crit { background: #fee2e2; color: #b91c1c; }
+.bdg-offline { background: #f1f5f9; color: #64748b; }
 
 /* ── Settings form (Ambient Weather API config) ── */
 .settings-field { margin-bottom: 16px; max-width: 420px; }
@@ -383,6 +391,17 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .calib-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 10px; }
 .calib-group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
 
+.calib-help { background: var(--bg); border-radius: var(--radius-sm); box-shadow: var(--inset-sm); padding: 12px 16px; margin-bottom: 18px; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.calib-help summary { cursor: pointer; font-weight: 700; color: var(--text-primary); font-size: 12.5px; }
+.calib-help summary::marker { color: var(--text-muted); }
+.calib-help-note { margin: 10px 0 12px; }
+.calib-help ol { margin: 0; padding-left: 18px; }
+.calib-help ol > li { margin-bottom: 12px; }
+.calib-help ol > li:last-child { margin-bottom: 0; }
+.calib-help ul { margin: 6px 0 0; padding-left: 18px; }
+.calib-help ul > li { margin-bottom: 4px; }
+.calib-help code { background: rgba(3, 105, 161, 0.1); color: var(--accent-blue-dark); padding: 1px 5px; border-radius: 4px; font-size: 11px; white-space: nowrap; }
+
 /* ── Weather fetch loading state ── */
 .weather-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px 24px; text-align: center; }
 .spinner {
@@ -408,14 +427,17 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .weather-loading-detail { font-size: 12px; font-weight: 600; color: var(--accent-blue-dark); }
 .weather-loading-hint { font-size: 11px; color: var(--text-muted); max-width: 420px; line-height: 1.6; }
 
-/* ── Settings page — two-column grid: Ambient Weather settings (left, fixed
-   width) + Sensor Nodes (right, flexible for the table); stacks on narrow
-   screens. Not flex-centered (would clip the top when content grows taller
-   than the viewport) — a plain top-aligned scroll container instead. ── */
+/* ── Settings page — top row: Ambient Weather + Calibration Constants side
+   by side (two equal columns); bottom row: Sensor Nodes full width (it's a
+   wide table, benefits most from the full page width). Stacks to one column
+   on narrow screens. Not flex-centered (would clip the top when content
+   grows taller than the viewport) — a plain top-aligned scroll container
+   instead. ── */
 .settings-page { flex: 1; padding: 24px; }
-.settings-page-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 420px 1fr; gap: 20px; align-items: start; }
+.settings-page-grid { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.settings-top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 @media (max-width: 900px) {
-  .settings-page-grid { grid-template-columns: 1fr; }
+  .settings-top-grid { grid-template-columns: 1fr; }
 }
 
 /* ── Node management table (Settings page) ── */
@@ -438,6 +460,25 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .node-table td { padding: 8px 12px; border-bottom: 1px solid #eef4f2; color: var(--text-primary); }
 .node-table tr:last-child td { border-bottom: none; }
 .node-table tbody tr:hover td { background: var(--bg); }
+.node-table tbody tr.row-selected td { background: rgba(59, 130, 246, 0.08); }
+
+/* Sortable column headers (Log Management) */
+.log-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.log-sort-btn:hover { color: var(--text-primary); }
+.log-sort-asc { transform: rotate(180deg); }
 
 /* ── Chart subtitle / glossary help text ── */
 .chart-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 400; }

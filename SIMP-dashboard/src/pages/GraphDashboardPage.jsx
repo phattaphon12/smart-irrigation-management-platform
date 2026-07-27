@@ -60,7 +60,7 @@ export default function GraphDashboardPage({
             activeNodes={activeNodes}
             viewMode={viewMode}
             nodeIds={nodeIds}
-            controls={<ZoneDepthControls onSelectTreatment={selectByTreatment} onSelectDepth={selectByDepth} />}
+            //controls={<ZoneDepthControls onSelectTreatment={selectByTreatment} onSelectDepth={selectByDepth} />}
           />
 
           {weatherLoading ? (

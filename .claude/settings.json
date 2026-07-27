@@ -19,7 +19,8 @@
       "Bash(node _tmp_debug2.mjs)",
       "Bash(node _tmp_debug3.mjs)",
       "Bash(node _tmp_check_dupes.mjs)",
-      "Bash(node _tmp_repair.mjs)"
+      "Bash(node _tmp_repair.mjs)",
+      "Bash(curl -s \"http://localhost:4000/api/logs?limit=3&sort=radc&dir=asc\")"
     ]
   }
 }

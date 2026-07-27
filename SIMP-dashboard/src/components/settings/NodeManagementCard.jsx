@@ -85,7 +85,7 @@ export default function NodeManagementCard() {
         delete payload.node_id;
         delete payload.node_code;
         await updateNode(editingNodeId, payload);
-        setStatus({ type: 'ok', message: `Node ${form.node_code} updated` });
+        setStatus({ type: 'ok', message: `Sensor ${form.node_code} updated` });
       } else {
         const payload = {
           ...form,
@@ -93,12 +93,12 @@ export default function NodeManagementCard() {
           depth: form.depth === '' ? null : Number(form.depth),
         };
         await createNode(payload);
-        setStatus({ type: 'ok', message: `Node ${payload.node_code} added successfully` });
+        setStatus({ type: 'ok', message: `Sensor ${payload.node_code} added successfully` });
       }
       closeForm();
       loadNodes();
     } catch (err) {
-      setStatus({ type: 'err', message: `Failed to save node: ${err.message}` });
+      setStatus({ type: 'err', message: `Failed to save sensor: ${err.message}` });
     } finally {
       setSaving(false);
     }
@@ -109,9 +109,9 @@ export default function NodeManagementCard() {
     try {
       await deleteNode(n.node_id);
       loadNodes();
-      setStatus({ type: 'ok', message: `${n.node_code} deleted — switch to the Graph Dashboard tab and refresh to see it removed from the node picker` });
+      setStatus({ type: 'ok', message: `${n.node_code} deleted — switch to the Graph Dashboard tab and refresh to see it removed from the sensor picker` });
     } catch (err) {
-      setStatus({ type: 'err', message: `Failed to delete node: ${err.message}` });
+      setStatus({ type: 'err', message: `Failed to delete sensor: ${err.message}` });
     }
   };
 
@@ -121,7 +121,7 @@ export default function NodeManagementCard() {
       loadNodes();
       setStatus({ type: 'ok', message: `${n.node_code} restored — switch to the Graph Dashboard tab and refresh to see it again` });
     } catch (err) {
-      setStatus({ type: 'err', message: `Failed to restore node: ${err.message}` });
+      setStatus({ type: 'err', message: `Failed to restore sensor: ${err.message}` });
     }
   };
 
@@ -139,7 +139,7 @@ export default function NodeManagementCard() {
             {showInactive ? 'Hide Inactive' : 'Show Inactive'}
           </button>
           <button className="f-btn" onClick={() => (showForm ? closeForm() : openAddForm())}>
-            <IconPlus size={13} /> {showForm ? 'Cancel' : 'Add Node'}
+            <IconPlus size={13} /> {showForm ? 'Cancel' : 'Add Sensor'}
           </button>
         </div>
       </div>
@@ -149,16 +149,16 @@ export default function NodeManagementCard() {
           <form onSubmit={handleSubmit} className="node-add-form">
             <div className="node-add-grid">
               <div className="settings-field" style={{ marginBottom: 0 }}>
-                <label htmlFor="node_id">Node ID *</label>
+                <label htmlFor="node_id">Sensor ID *</label>
                 <input id="node_id" type="number" min="1" required disabled={editingNodeId != null} className="settings-input" placeholder="1" {...field('node_id')} />
               </div>
               <div className="settings-field" style={{ marginBottom: 0 }}>
-                <label htmlFor="node_code">Node Code *</label>
-                <input id="node_code" className="settings-input" required disabled={editingNodeId != null} placeholder="Node_031" {...field('node_code')} />
+                <label htmlFor="node_code">Sensor Code *</label>
+                <input id="node_code" className="settings-input" required disabled={editingNodeId != null} placeholder="Sensor_031" {...field('node_code')} />
               </div>
               <div className="settings-field" style={{ marginBottom: 0 }}>
                 <label htmlFor="name">Name</label>
-                <input id="name" className="settings-input" placeholder="Node 031" {...field('name')} />
+                <input id="name" className="settings-input" placeholder="Sensor 031" {...field('name')} />
               </div>
               <div className="settings-field" style={{ marginBottom: 0 }}>
                 <label htmlFor="depth">Depth (cm)</label>
@@ -177,11 +177,11 @@ export default function NodeManagementCard() {
                 <input id="status" className="settings-input" placeholder="OK" {...field('status')} />
               </div>
               <div className="settings-field" style={{ marginBottom: 0 }}>
-                <label htmlFor="eui">EUI</label>
+                <label htmlFor="eui">EUI (8 bytes)</label>
                 <input id="eui" className="settings-input" placeholder="70B3D57ED0050AB1" maxLength={16} {...field('eui')} />
               </div>
               <div className="settings-field" style={{ marginBottom: 0 }}>
-                <label htmlFor="dev_addr">Dev Addr</label>
+                <label htmlFor="dev_addr">Dev Addr (4 bytes)</label>
                 <input id="dev_addr" className="settings-input" placeholder="7F5B2BE9" maxLength={8} {...field('dev_addr')} />
               </div>
               <label className="node-add-flagged" htmlFor="flagged">
@@ -194,25 +194,29 @@ export default function NodeManagementCard() {
                 Flagged
               </label>
             </div>
+            <div className="settings-hint" style={{ marginTop: 10 }}>
+              Need EUI / Dev Addr values? Generate LoRaWAN keys at{' '}
+              <a href="https://www.loratools.nl/#/keys" target="_blank" rel="noopener noreferrer">loratools.nl/#/keys</a>.
+            </div>
             <button className="f-btn settings-submit" type="submit" disabled={saving} style={{ marginTop: 16 }}>
-              {saving ? 'Saving…' : editingNodeId != null ? 'Save Changes' : 'Save Node'}
+              {saving ? 'Saving…' : editingNodeId != null ? 'Save Changes' : 'Save Sensor'}
             </button>
           </form>
         )}
 
         {status && <div className={`settings-status ${status.type}`} style={{ marginBottom: 16 }}>{status.message}</div>}
-        {loadError && <div className="settings-status err">Failed to load node list: {loadError}</div>}
+        {loadError && <div className="settings-status err">Failed to load sensor list: {loadError}</div>}
 
         {loading ? (
           <div className="node-table-empty">Loading…</div>
         ) : visibleNodes.length === 0 ? (
-          <div className="node-table-empty">No nodes yet — click "Add Node" to add the first one</div>
+          <div className="node-table-empty">No sensors yet — click "Add Sensor" to add the first one</div>
         ) : (
           <div className="node-table-wrap">
             <table className="node-table">
               <thead>
                 <tr>
-                  <th>Node ID</th>
+                  <th>Sensor ID</th>
                   <th>Code</th>
                   <th>Name</th>
                   <th>Depth</th>
@@ -250,15 +254,15 @@ export default function NodeManagementCard() {
                       <div style={{ display: 'flex', gap: 6 }}>
                         {n.active ? (
                           <>
-                            <button className="f-btn" title="Edit node" onClick={() => openEditForm(n)}>
+                            <button className="f-btn" title="Edit sensor" onClick={() => openEditForm(n)}>
                               <IconEdit size={12} />
                             </button>
-                            <button className="f-btn" title="Delete node (soft — keeps history)" onClick={() => handleDelete(n)}>
+                            <button className="f-btn" title="Delete sensor (soft — keeps history)" onClick={() => handleDelete(n)}>
                               <IconTrash size={12} />
                             </button>
                           </>
                         ) : (
-                          <button className="f-btn" title="Restore node" onClick={() => handleRestore(n)}>
+                          <button className="f-btn" title="Restore sensor" onClick={() => handleRestore(n)}>
                             <IconRestore size={12} /> Restore
                           </button>
                         )}

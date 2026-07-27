@@ -50,7 +50,7 @@ export default function BatteryStatusPage({ nodeIds, soilNodes }) {
           <div className="chart-card">
             <div className="chart-hd">
               <div>
-                <div className="chart-ttl">Battery Level by Sensor Node (%)</div>
+                <div className="chart-ttl">Battery Level by Sensor (%)</div>
                 <div className="chart-sub">Comparing battery levels across all active sensors</div>
               </div>
             </div>

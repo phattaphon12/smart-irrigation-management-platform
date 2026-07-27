@@ -1,22 +1,28 @@
 import { colorForNodeIndex, nodeIndexFromId } from '../../utils/nodeColors';
 import { batteryStatus, estimatedDaysRemaining } from '../../utils/batteryStatus';
+import { isNodeOffline } from '../../utils/nodeStatus';
 
 export default function BatteryGrid({ nodeIds, soilNodes }) {
   return (
     <div className="bg">
       {nodeIds.map((nodeId) => {
-        const meta = soilNodes[nodeId].meta;
+        const node = soilNodes[nodeId];
+        const meta = node.meta;
         const pct = meta.battery ?? 50;
-        const status = batteryStatus(pct);
+        // No data for over an hour (same threshold as the Graph Dashboard) means
+        // we can no longer vouch for this being the sensor's current battery level
+        // either, so offline overrides whatever the percentage-based status says.
+        const offline = isNodeOffline(node);
+        const status = offline ? { level: 'offline', label: 'OFFLINE', color: '#94a3b8' } : batteryStatus(pct);
         const days = estimatedDaysRemaining(pct);
         return (
-          <div className="bc" key={nodeId}>
+          <div className={`bc${offline ? ' bc-offline' : ''}`} key={nodeId}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
-                <div className="bc-name" style={{ color: colorForNodeIndex(nodeIndexFromId(nodeId)) }}>{nodeId.replace('Node_', 'Node ')}</div>
+                <div className="bc-name" style={{ color: colorForNodeIndex(nodeIndexFromId(nodeId)) }}>{nodeId.replace('Node_', 'Sensor ')}</div>
                 <div className="bc-zone">{meta.treatment} · {meta.depth}cm</div>
               </div>
-              <span className={`bdg bdg-${status.level === 'ok' ? 'ok' : status.level === 'warn' ? 'warn' : 'crit'}`}>{status.label}</span>
+              <span className={`bdg bdg-${offline ? 'offline' : status.level === 'ok' ? 'ok' : status.level === 'warn' ? 'warn' : 'crit'}`}>{status.label}</span>
             </div>
             <div className="bc-bar">
               <div className="bc-fill" style={{ width: `${pct}%`, background: status.color }} />

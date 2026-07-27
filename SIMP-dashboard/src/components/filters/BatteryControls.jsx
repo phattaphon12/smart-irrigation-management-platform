@@ -6,7 +6,7 @@ const STATUS_FILTERS = [
 ];
 
 const SORT_OPTIONS = [
-  { id: 'id', label: 'Node ID' },
+  { id: 'id', label: 'Sensor ID' },
   { id: 'battery-asc', label: 'Battery ↑' },
   { id: 'battery-desc', label: 'Battery ↓' },
 ];
