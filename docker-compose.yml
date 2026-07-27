@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres
+    container_name: postgres-simp
+    restart: always
+    environment:
+      POSTGRES_USER: thanavit
+      POSTGRES_PASSWORD: "X9r^wUhPPtn@"
+      POSTGRES_DB: simp_database
+    ports:
+      - "5555:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  mqtt:
+    image: eclipse-mosquitto
+    container_name: mosquitto-simp
+    restart: always
+    ports:
+      - "1883:1883"      # Default MQTT port
+      - "9001:9001"      # MQTT over WebSockets (useful for Next.js frontend)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  backend:
+    build: ./SIMP-backend
+    container_name: backend-simp
+    restart: always
+    depends_on:
+      - db
+      - mqtt
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: thanavit
+      DB_PASSWORD: X9r^wUhPPtn@
+      DB_NAME: simp_database
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  frontend:
+    build: ./SIMP-dashboard
+    container_name: frontend-simp
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
