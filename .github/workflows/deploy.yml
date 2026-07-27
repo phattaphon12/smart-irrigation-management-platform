@@ -8,9 +8,8 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Deploy
         run: |
+          cd /home/deploy/SIMP
+          git pull origin main
           docker compose up -d --build backend frontend
