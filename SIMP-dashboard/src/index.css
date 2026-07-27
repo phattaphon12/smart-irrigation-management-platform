@@ -142,6 +142,11 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .fb-segmented .f-btn:hover { color: var(--text-primary); }
 .fb-segmented .f-btn.active { background: var(--gradient-accent); color: #ffffff; font-weight: 700; box-shadow: var(--raised-sm); }
 
+/* Sidebar is only 280px wide — the 72px floor above is sized for the wider
+   chart-header controls (Zone/Depth/Series) and overflows the sidebar's own
+   edge with 4 buttons (Time Range: 1D/1W/30D/All), so drop the floor here. */
+.sidebar .fb-segmented .f-btn { min-width: 0; }
+
 .fb { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
 .f-btn {
   display: inline-flex;
