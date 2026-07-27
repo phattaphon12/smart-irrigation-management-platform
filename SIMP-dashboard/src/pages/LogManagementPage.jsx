@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchLogs, deleteLog, bulkDeleteLogs, recalculateLog, recalculateAllLogs, buildExportUrl } from '../lib/api/logsClient';
+import { fetchLogs, deleteLog, bulkDeleteLogs, clearAllLogs, recalculateLog, recalculateAllLogs, buildExportUrl } from '../lib/api/logsClient';
 import { formatDateTime, formatNumber } from '../utils/formatters';
 import { IconTrash, IconRefresh, IconChevronDown } from '../components/icons/Icons';
 
@@ -30,6 +30,7 @@ export default function LogManagementPage({ nodeIds }) {
   const [busyId, setBusyId] = useState(null); // row currently being deleted/recalculated
   const [recalcAllBusy, setRecalcAllBusy] = useState(false);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [clearAllBusy, setClearAllBusy] = useState(false);
   const [status, setStatus] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
 
@@ -170,6 +171,23 @@ export default function LogManagementPage({ nodeIds }) {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm(`Permanently delete ALL ${total.toLocaleString()} log rows from every sensor? This cannot be undone.`)) return;
+    setClearAllBusy(true);
+    setStatus(null);
+    try {
+      const { deleted } = await clearAllLogs();
+      setRows([]);
+      setTotal(0);
+      setSelectedIds(new Set());
+      setStatus({ type: 'ok', message: `Cleared all log data — deleted ${deleted.toLocaleString()} rows` });
+    } catch (err) {
+      setStatus({ type: 'err', message: `Clear all failed: ${err.message}` });
+    } finally {
+      setClearAllBusy(false);
+    }
+  };
+
   return (
     <div className="batt-page" id="main-logs" style={{ display: 'block' }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
@@ -204,6 +222,9 @@ export default function LogManagementPage({ nodeIds }) {
               </button>
             )}
             <a className="f-btn" href={buildExportUrl()} download>Export CSV</a>
+            <button className="f-btn" onClick={handleClearAll} disabled={clearAllBusy || total === 0} style={{ color: '#b91c1c' }} title="Delete every log row, not just what's loaded on this page">
+              {clearAllBusy ? 'Clearing…' : <><IconTrash size={12} /> Clear All Data</>}
+            </button>
           </div>
         </div>
 

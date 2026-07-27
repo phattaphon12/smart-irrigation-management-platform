@@ -46,6 +46,13 @@ export async function recalculateAllLogs() {
   return body;
 }
 
+export async function clearAllLogs() {
+  const res = await fetch(`${BACKEND_URL}/api/logs/clear-all`, { method: 'POST' });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error || `Backend error: HTTP ${res.status}`);
+  return body; // { ok, deleted }
+}
+
 export function buildExportUrl() {
   return `${BACKEND_URL}/api/logs/export.csv`;
 }

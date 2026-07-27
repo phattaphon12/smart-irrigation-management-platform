@@ -127,6 +127,24 @@ router.post('/bulk-delete', async (req, res) => {
   }
 });
 
+// "Clear all data" — wipes every row, not just what the client has loaded
+// (bulk-delete above only covers ids the client already knows about).
+router.post('/clear-all', async (_req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM node_log');
+    const { rowCount } = await client.query('DELETE FROM log');
+    await client.query('COMMIT');
+    res.json({ ok: true, deleted: rowCount });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(502).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 async function recalculateRow(client, logRow) {
   const { kpa, vwc, awc } = adcToAll(logRow.radc);
   // Same precision concern as ingest.js/DELETE above — recorded_at comes from
