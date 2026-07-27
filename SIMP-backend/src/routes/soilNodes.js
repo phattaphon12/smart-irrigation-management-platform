@@ -22,7 +22,7 @@ const router = Router();
 router.get('/', async (_req, res) => {
   try {
     const { rows: nodeRows } = await pool.query(
-      'SELECT node_id, node_code, depth, treatment, position, status, flagged FROM nodes ORDER BY node_code'
+      'SELECT node_id, node_code, depth, treatment, position, status, flagged FROM nodes WHERE active ORDER BY node_code'
     );
     const { rows: logRows } = await pool.query(
       // recorded_at is stored as timestamptz (UTC instant) — AT TIME ZONE 'Asia/Bangkok'

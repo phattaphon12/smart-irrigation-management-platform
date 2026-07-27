@@ -4,6 +4,7 @@ import TopNav from './components/layout/TopNav';
 import Footer from './components/layout/Footer';
 import GraphDashboardPage from './pages/GraphDashboardPage';
 import BatteryStatusPage from './pages/BatteryStatusPage';
+import LogManagementPage from './pages/LogManagementPage';
 import SettingsPage from './pages/SettingsPage';
 import { IconWarning } from './components/icons/Icons';
 import { useSoilNodesData } from './hooks/useSoilNodesData';
@@ -65,6 +66,7 @@ export default function App() {
         />
       )}
       {activePage === 'battery' && <BatteryStatusPage nodeIds={nodeSelection.nodeIds} soilNodes={soilNodes} />}
+      {activePage === 'logs' && <LogManagementPage nodeIds={nodeSelection.nodeIds} />}
       {activePage === 'settings' && <SettingsPage />}
 
       <Footer />

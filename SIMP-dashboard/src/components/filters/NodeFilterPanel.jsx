@@ -14,7 +14,10 @@ export default function NodeFilterPanel({
   return (
     <div className="node-filter-section">
       <div className="fl node-filter-hd">
-        <span>Sensor Nodes</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          Sensor Nodes
+          <span className="live-badge" title="Auto-refreshes every minute"><span className="live-dot" /> Live</span>
+        </span>
         <span className="node-count-badge">{activeNodes.size}/{nodeIds.length} shown</span>
       </div>
 

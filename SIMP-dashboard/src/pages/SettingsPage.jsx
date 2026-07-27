@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { IconEdit } from '../components/icons/Icons';
 import NodeManagementCard from '../components/settings/NodeManagementCard';
+import CalibrationConstantsCard from '../components/settings/CalibrationConstantsCard';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -72,6 +73,7 @@ export default function SettingsPage() {
   return (
     <div className="settings-page">
       <div className="settings-page-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div className="chart-card">
           <div className="chart-hd">
             <div>
@@ -169,6 +171,9 @@ export default function SettingsPage() {
 
             {status && <div className={`settings-status ${status.type}`}>{status.message}</div>}
           </div>
+        </div>
+
+        <CalibrationConstantsCard />
         </div>
 
         <NodeManagementCard />

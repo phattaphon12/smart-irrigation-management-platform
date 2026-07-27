@@ -80,3 +80,60 @@ export function IconDiamond({ size = 10, ...props }) {
     </svg>
   );
 }
+
+export function IconTrash({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M4 6h12" />
+      <path d="M8 6V4.5h4V6" />
+      <path d="M5.5 6l.7 10a1 1 0 0 0 1 .9h5.6a1 1 0 0 0 1-.9l.7-10" />
+      <path d="M8.3 9v5" />
+      <path d="M11.7 9v5" />
+    </svg>
+  );
+}
+
+export function IconRestore({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M4 10a6 6 0 1 0 2-4.5" />
+      <path d="M4 3.5V6.5H7" />
+    </svg>
+  );
+}
+
+export function IconRefresh({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M16 10a6 6 0 1 1-2-4.5" />
+      <path d="M16 3v3.5h-3.5" />
+    </svg>
+  );
+}
+
+export function IconFilter({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M3 4h14l-5.5 6.5V16l-3-1.5v-4L3 4z" />
+    </svg>
+  );
+}
+
+export function IconChevronDown({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M5 7.5L10 12.5L15 7.5" />
+    </svg>
+  );
+}
+
+export function IconLogs({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <rect x="3" y="3" width="14" height="14" rx="2" />
+      <line x1="3" y1="8" x2="17" y2="8" />
+      <line x1="6.5" y1="11.5" x2="10.5" y2="11.5" />
+      <line x1="6.5" y1="14.2" x2="13.5" y2="14.2" />
+    </svg>
+  );
+}

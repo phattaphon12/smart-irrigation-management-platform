@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getAmbientConfig, updateAmbientConfig } from '../config/ambientConfig.js';
+import { getCalibrationConfig, updateCalibrationConfig, CALIBRATION_FIELDS } from '../config/calibrationConfig.js';
 
 const router = Router();
 
@@ -35,6 +36,30 @@ router.put('/ambient', (req, res) => {
   if (typeof stationMac === 'string' && stationMac.trim()) patch.stationMac = stationMac.trim();
 
   res.json(toPublicShape(updateAmbientConfig(patch)));
+});
+
+// Not secrets — plain numeric calibration constants, no masking needed.
+router.get('/calibration', (_req, res) => {
+  res.json(getCalibrationConfig());
+});
+
+router.put('/calibration', async (req, res) => {
+  const body = req.body || {};
+  const patch = {};
+  for (const field of CALIBRATION_FIELDS) {
+    if (body[field] === undefined) continue;
+    const n = Number(body[field]);
+    if (!Number.isFinite(n)) {
+      return res.status(400).json({ error: `${field} must be a finite number` });
+    }
+    patch[field] = n;
+  }
+
+  try {
+    res.json(await updateCalibrationConfig(patch));
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 export default router;

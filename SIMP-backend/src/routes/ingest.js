@@ -62,16 +62,23 @@ router.post('/log', async (req, res) => {
        RETURNING id, created_at`,
       [nodeId, numOrNull(RST), radc, batt, numOrNull(BADC)]
     );
-    const { created_at: recordedAt } = rows[0];
+    const logId = rows[0].id;
+    const recordedAt = rows[0].created_at;
 
     const { kpa, vwc, awc } = adcToAll(radc);
     let nodeLogId = null;
     if (kpa != null || batt != null) {
+      // recorded_at is copied server-side from log.created_at (via subquery,
+      // not the JS Date in `recordedAt` above) so the two stay byte-exact —
+      // `now()` has microsecond precision in Postgres but a JS Date only
+      // keeps milliseconds, so round-tripping it back through a parameter
+      // would silently truncate and break any later exact-timestamp join
+      // between log and node_log (see routes/logs.js).
       const { rows: nodeLogRows } = await pool.query(
         `INSERT INTO node_log (node_id, kpa, vwc, awc, battery, recorded_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         SELECT $1, $2, $3, $4, $5, created_at FROM log WHERE id = $6
          RETURNING id`,
-        [nodeId, kpa, vwc, awc, batt, recordedAt]
+        [nodeId, kpa, vwc, awc, batt, logId]
       );
       nodeLogId = nodeLogRows[0].id;
     }

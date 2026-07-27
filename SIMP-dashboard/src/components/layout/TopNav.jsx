@@ -1,8 +1,9 @@
-import { IconChart, IconBattery, IconSettings } from '../icons/Icons';
+import { IconChart, IconBattery, IconSettings, IconLogs } from '../icons/Icons';
 
 const TABS = [
   { id: 'graphs', label: 'Graph Dashboard', Icon: IconChart },
   { id: 'battery', label: 'Battery Status', Icon: IconBattery },
+  { id: 'logs', label: 'Log Management', Icon: IconLogs },
   { id: 'settings', label: 'Settings', Icon: IconSettings },
 ];
 

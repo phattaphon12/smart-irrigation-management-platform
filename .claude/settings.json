@@ -3,7 +3,23 @@
     "allow": [
       "Bash(git remote *)",
       "Bash(git push *)",
-      "Bash(git commit --amend -m ' *)"
+      "Bash(git commit --amend -m ' *)",
+      "Bash(node verify_footer.mjs)",
+      "Bash(node verify_footer2.mjs)",
+      "Bash(node _tmp_migrate_remote.mjs)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.length, j.map\\(n=>n.node_code\\)\\)}\\)\")",
+      "PowerShell(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 4000 } | Select-Object LocalPort, OwningProcess | ForEach-Object { $_; Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Select-Object Id, StartTime, Path })",
+      "PowerShell(Get-Process -Id 6896 -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 6896 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 4000 })",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>console.log\\(JSON.parse\\(d\\).updated_at\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:4000/api/logs/recalculate-all)",
+      "Bash(node _tmp_debug.mjs)",
+      "PowerShell(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 4000 } | Select-Object LocalPort, OwningProcess | ForEach-Object { $_; Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Select-Object Id, StartTime })",
+      "PowerShell(Get-Process -Id 34436 -ErrorAction SilentlyContinue)",
+      "Bash(node _tmp_debug2.mjs)",
+      "Bash(node _tmp_debug3.mjs)",
+      "Bash(node _tmp_check_dupes.mjs)",
+      "Bash(node _tmp_repair.mjs)"
     ]
   }
 }
