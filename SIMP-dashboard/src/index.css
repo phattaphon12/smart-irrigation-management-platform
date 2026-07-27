@@ -1,0 +1,464 @@
+/*
+ * Global styles — Neumorphic (soft UI) theme, soft green / blue / white
+ * โครงสร้าง CSS ใช้ class name เดิมทั้งหมด เพื่อให้ component ต่างๆ ใช้ได้ตรงๆ โดยไม่ต้องแก้ JSX
+ * หลักการ: ทุกพื้นผิวใช้สีพื้นฐานเดียวกัน (--bg) แล้วใช้ box-shadow คู่ (สว่าง/เข้ม) สร้างมิติ
+ * "นูน" (raised) หรือ "บุ๋ม" (inset/pressed) แทนเส้นขอบ — สีข้อมูลในกราฟ SVG ไม่ถูกแตะในไฟล์นี้
+ */
+
+:root {
+  --bg: #e7f1ee;
+  --surface: #ffffff;
+  --shadow-light: #ffffff;
+  --shadow-dark: #c2d3ce;
+
+  --text-primary: #1c2b27;
+  --text-secondary: #4d6b64;
+  --text-muted: #85a49c;
+
+  --accent-green: #10b981;
+  --accent-green-dark: #047857;
+  --accent-blue: #0ea5e9;
+  --accent-blue-dark: #0369a1;
+  --gradient-accent: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
+  --gradient-header: linear-gradient(135deg, #a7f3d0 0%, #bae6fd 100%);
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+
+  --raised-sm: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+  --raised-md: 6px 6px 14px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
+  --raised-lg: 8px 8px 18px var(--shadow-dark), -8px -8px 18px var(--shadow-light);
+  --inset-sm: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  --inset-md: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+}
+
+/* ── Global Setup ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Sarabun', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typography & Elements ── */
+h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
+
+/* ── Header ── */
+.hdr {
+  background: var(--gradient-header);
+  color: var(--text-primary);
+  padding: 16px 24px;
+  margin: 16px 16px 0;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--raised-lg);
+}
+.hdr h1 { font-size: 18px; color: #0f2a22; letter-spacing: 0.2px; }
+.hdr .sub { font-size: 11px; color: #2f5148; margin-top: 4px; font-weight: 500; }
+.hdr-meta {
+  text-align: right;
+  font-size: 11px;
+  color: #0f2a22;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 2px 2px 4px rgba(15, 42, 34, 0.08), inset -2px -2px 4px rgba(255, 255, 255, 0.6);
+}
+
+/* ── Top Navigation — floating pill tabs ── */
+.nav { display: flex; background: transparent; padding: 14px 28px 6px; gap: 10px; }
+.nav-btn {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  box-shadow: var(--raised-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.nav-btn.active { color: #ffffff; background: var(--gradient-accent); box-shadow: var(--inset-sm); }
+.nav-btn:hover:not(.active) { color: var(--text-primary); transform: translateY(-1px); }
+
+/* ── Master-Detail Layout ── */
+.layout { display: flex; flex: 1; min-height: 0; gap: 20px; padding: 16px; }
+
+/* ── Sidebar (Global Controls Only) — floating panel ── */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--raised-lg);
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fs { padding: 16px 18px; border-bottom: 1px solid rgba(194, 211, 206, 0.4); }
+.fl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
+
+/* Segmented Control Track — carved-in groove with a raised active pill */
+.fb-segmented {
+  display: flex;
+  width: 100%;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  gap: 2px;
+  box-shadow: var(--inset-sm);
+}
+.fb-segmented .f-btn {
+  /* flex-basis:0 + min-width:0 so every button in the track gets an equal share
+     regardless of label length — .f-btn's own white-space:nowrap/min-width:auto
+     would otherwise let a long label (e.g. "Low Power") force its button wider
+     than a short one (e.g. "All") even with flex:1 */
+  flex: 1 1 0;
+  min-width: 72px;
+  white-space: normal;
+  text-align: center;
+  border: none;
+  background: transparent;
+  padding: 7px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: none;
+}
+.fb-segmented .f-btn:hover { color: var(--text-primary); }
+.fb-segmented .f-btn.active { background: var(--gradient-accent); color: #ffffff; font-weight: 700; box-shadow: var(--raised-sm); }
+
+.fb { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.f-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 12px;
+  min-height: 38px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-weight: 600;
+  box-shadow: var(--raised-sm);
+}
+.f-btn:hover { color: var(--text-primary); transform: translateY(-1px); }
+.f-btn.active { background: var(--gradient-accent); color: #ffffff; box-shadow: var(--inset-sm); }
+.f-btn:focus-visible, .nav-btn:focus-visible, .nb:focus-visible { outline: 2px solid var(--accent-blue-dark); outline-offset: 2px; }
+
+.fb-actions { width: 100%; display: flex; gap: 8px; }
+.fb-actions .f-btn { flex: 1; text-align: center; }
+
+/* Node Selection — quick filters + map combined into one scannable section */
+.node-filter-section { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; background: transparent; min-height: 0; }
+.node-filter-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.node-count-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--accent-blue-dark);
+  background: rgba(59, 130, 246, 0.12);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.node-filter-subhd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; }
+.node-filter-hint { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.node-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.nb {
+  padding: 10px 4px;
+  min-height: 44px;
+  font-size: 12px;
+  border: none;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  /* inset 0 3px 0 var(--nc): thin colored stripe kept in both states so the node's
+     chart-line color stays recognizable even when not selected (inset shadow) */
+  box-shadow: inset 0 3px 0 var(--nc), var(--raised-sm);
+}
+.nb:hover { color: var(--text-primary); transform: translateY(-1px); }
+.nb.on { color: var(--text-primary); font-weight: 700; box-shadow: inset 0 3px 0 var(--nc), var(--inset-sm); }
+.nb .nm { font-weight: 600; }
+
+.depth-dot { width: 6px; height: 6px; border-radius: 5px; display: inline-block; }
+.dot-20 { background: var(--accent-green-dark); }
+.dot-40 { background: var(--accent-blue-dark); }
+.dot-spare { background: var(--text-muted); }
+
+.node-legend { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+
+/* ── Content Viewport ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; min-width: 0; }
+.main-inner { flex: 1; overflow-y: auto; padding: 4px 4px 24px; }
+
+/* ── Chart Cards Layout — raised panels on the soft canvas ── */
+.chart-card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: var(--raised-lg);
+}
+.chart-hd {
+  padding: 18px 24px;
+  border-bottom: 1px solid #eef4f2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-controls-inline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.control-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--raised-sm);
+}
+.control-sub-item .ctl-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cc { padding: 16px 20px; overflow-x: auto; background: var(--surface); }
+
+/* ── Tooltip ── */
+.tip {
+  /* absolute (not fixed): x/y from mouse handlers are computed relative to
+     the .cc container's bounding rect, so the tooltip must anchor to that
+     same positioned ancestor to land next to the cursor */
+  position: absolute;
+  background: rgba(255, 255, 255, 0.94);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--text-primary);
+  pointer-events: none;
+  z-index: 999;
+  display: none;
+  max-width: 320px;
+  line-height: 1.6;
+  box-shadow: var(--raised-lg);
+  backdrop-filter: blur(8px);
+}
+.tip .td { color: var(--accent-blue-dark); font-weight: 700; margin-bottom: 6px; font-size: 12px; border-bottom: 1px solid #eef4f2; padding-bottom: 5px; }
+
+/* ── Battery View UI ── */
+.batt-page { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; background: transparent; display: none; }
+.bg { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; margin-bottom: 24px; }
+.bc { background: var(--surface); border: none; border-radius: var(--radius-md); padding: 18px; box-shadow: var(--raised-md); }
+.bc-name { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+.bc-zone { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+.bc-bar { height: 10px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; margin-bottom: 8px; box-shadow: var(--inset-sm); }
+.bc-fill { height: 100%; border-radius: var(--radius-pill); }
+.bc-bot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.bc-pct { font-weight: 700; }
+.bc-days { color: var(--text-muted); font-weight: 500; }
+.bdg { display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; }
+.bdg-ok { background: #dcfce7; color: #15803d; }
+.bdg-warn { background: #fef3c7; color: #b45309; }
+.bdg-crit { background: #fee2e2; color: #b91c1c; }
+
+/* ── Settings form (Ambient Weather API config) ── */
+.settings-field { margin-bottom: 16px; max-width: 420px; }
+.settings-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-muted); margin-bottom: 6px; }
+.settings-current { color: var(--text-muted); font-weight: 500; text-transform: none; letter-spacing: normal; }
+.settings-input {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 13px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: inherit;
+  box-shadow: var(--inset-sm);
+}
+.settings-input:focus { outline: none; box-shadow: var(--inset-sm), 0 0 0 3px rgba(14, 165, 233, 0.35); }
+.settings-view-value {
+  padding: 11px 14px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  box-shadow: var(--inset-sm);
+}
+.settings-view-value.muted { color: var(--text-muted); font-style: italic; letter-spacing: normal; }
+.settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.settings-submit { background: var(--gradient-accent); color: #ffffff; border: none; font-weight: 700; box-shadow: var(--raised-md); }
+.settings-submit:hover { filter: brightness(1.06); }
+.settings-submit:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+.settings-status { font-size: 12px; margin-top: 14px; padding: 9px 12px; border-radius: var(--radius-sm); }
+.settings-status.ok { background: #dcfce7; color: #15803d; }
+.settings-status.err { background: #fee2e2; color: #b91c1c; }
+
+/* ── Weather fetch loading state ── */
+.weather-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px 24px; text-align: center; }
+.spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: var(--raised-sm);
+  position: relative;
+}
+.spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-blue-dark);
+  border-right-color: var(--accent-green-dark);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.weather-loading-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.weather-loading-detail { font-size: 12px; font-weight: 600; color: var(--accent-blue-dark); }
+.weather-loading-hint { font-size: 11px; color: var(--text-muted); max-width: 420px; line-height: 1.6; }
+
+/* ── Settings page — two-column grid: Ambient Weather settings (left, fixed
+   width) + Sensor Nodes (right, flexible for the table); stacks on narrow
+   screens. Not flex-centered (would clip the top when content grows taller
+   than the viewport) — a plain top-aligned scroll container instead. ── */
+.settings-page { flex: 1; min-height: 0; padding: 24px; overflow-y: auto; }
+.settings-page-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 420px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) {
+  .settings-page-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Node management table (Settings page) ── */
+.node-add-form { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #eef4f2; }
+.node-add-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.node-add-flagged { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); align-self: end; padding-bottom: 10px; }
+.node-table-empty { font-size: 12px; color: var(--text-muted); padding: 16px 0; }
+.node-table-wrap { overflow-x: auto; }
+.node-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.node-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  border-bottom: 1px solid #eef4f2;
+}
+.node-table td { padding: 8px 12px; border-bottom: 1px solid #eef4f2; color: var(--text-primary); }
+.node-table tr:last-child td { border-bottom: none; }
+.node-table tbody tr:hover td { background: var(--bg); }
+
+/* ── Chart subtitle / glossary help text ── */
+.chart-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 400; }
+.chart-glossary { font-size: 11px; color: var(--text-muted); padding: 8px 20px 0; line-height: 1.6; }
+.chart-glossary b { color: var(--text-primary); }
+
+/* ── Footer ── */
+.app-footer {
+  flex-shrink: 0;
+  margin: 0 16px 16px;
+  padding: 20px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  box-shadow: var(--raised-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.footer-logos { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.footer-logo-slot {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.footer-logo-slot img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.footer-logo-slot span { font-size: 9px; color: var(--text-muted); text-align: center; padding: 4px; line-height: 1.3; }
+.footer-credit { text-align: center; }
+.footer-credit-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 4px; }
+.footer-credit-org { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+
+/* ── React root sizing ── */
+html, body, #root { height: 100%; }
+#root { display: flex; flex-direction: column; }
+
+/* ── Responsive: tablet & mobile ── */
+@media (max-width: 900px) {
+  .hdr { padding: 12px 16px; margin: 10px 10px 0; flex-wrap: wrap; gap: 8px; }
+  .hdr h1 { font-size: 15px; }
+  .hdr-meta { font-size: 10px; padding: 5px 10px; }
+  .nav { overflow-x: auto; padding: 10px 10px 4px; }
+  .nav-btn { padding: 10px 16px; font-size: 12px; white-space: nowrap; }
+
+  .layout { flex-direction: column; gap: 12px; padding: 10px; }
+  .sidebar { width: 100%; min-width: 0; max-height: 320px; }
+  .node-filter-section { flex: none; }
+  .node-grid { grid-template-columns: repeat(4, 1fr); }
+
+  .main-inner { padding: 0 0 16px; }
+  .chart-hd { flex-direction: column; align-items: flex-start; }
+  .chart-controls-inline { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .cc { padding: 12px 8px; }
+
+  .bg { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+
+  .app-footer { margin: 0 10px 10px; padding: 16px; }
+  .footer-logo-slot { width: 48px; height: 48px; }
+}
+
+@media (max-width: 480px) {
+  .node-grid { grid-template-columns: repeat(3, 1fr); }
+  .fb-actions .f-btn, .fb .f-btn[style] { width: 100% !important; }
+}
