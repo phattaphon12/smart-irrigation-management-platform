@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { SOIL_NODES_MOCK } from '../data/mockSoilNodes';
 import { fetchSoilNodes } from '../lib/api/soilNodeClient';
 
-const POLL_MS = 60000; // field nodes report roughly once a minute — match that cadence
+const POLL_MS = 60000; // dashboard refresh rate — field nodes themselves report every ~15 min (dev_reference_sensor_et_v1.md §1)
 
 /**
  * ข้อมูลโหนดเซนเซอร์ความชื้นดิน — เริ่มด้วย mock (ให้ UI ใช้งานได้ทันทีระหว่างรอ fetch) แล้วลอง

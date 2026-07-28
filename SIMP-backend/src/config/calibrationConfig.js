@@ -12,6 +12,7 @@ export const CALIBRATION_FIELDS = [
   'r_divider_kohm',
   'adc_max',
   'adc_valid_min',
+  'adc_valid_max',
   'ss_a',
   'ss_b',
   'ss_c',

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { adcToAll } from '../lib/soilMoisture.js';
+import { getIngestConfig } from '../config/ingestConfig.js';
 
 /**
  * Receives raw sensor readings pushed by Node-RED, in the same JSON shape the
@@ -56,11 +57,15 @@ router.post('/log', async (req, res) => {
     const radc = numOrNull(RADC);
     const batt = numOrNull(BATT);
 
+    // data_source is stamped from the current global ingest setting (Settings
+    // page), not sent by the device — lets the team flip "bench" -> "field"
+    // once sensors go into real ground, without touching firmware (§4.2).
+    const { data_source: dataSource } = getIngestConfig();
     const { rows } = await pool.query(
-      `INSERT INTO log (node_id, rst, radc, batt, badc, created_at)
-       VALUES ($1, $2, $3, $4, $5, now())
+      `INSERT INTO log (node_id, rst, radc, batt, badc, data_source, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
        RETURNING id, created_at`,
-      [nodeId, numOrNull(RST), radc, batt, numOrNull(BADC)]
+      [nodeId, numOrNull(RST), radc, batt, numOrNull(BADC), dataSource]
     );
     const logId = rows[0].id;
     const recordedAt = rows[0].created_at;

@@ -32,8 +32,15 @@ router.get('/', async (_req, res) => {
       // once readings come in more than once a day — truncating to date collapses
       // every same-day reading onto one timestamps[] entry, silently dropping all but
       // the last one for that day.
-      `SELECT node_id, kpa, vwc, awc, battery, to_char(recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD"T"HH24:MI:SS') AS date
-       FROM node_log ORDER BY node_id, recorded_at ASC`
+      // Joined to log (on node_id + exact recorded_at/created_at) purely to
+      // exclude soft-deleted readings (see routes/logs.js) — a deleted row
+      // should disappear from the live chart too, not just Log Management.
+      `SELECT nl.node_id, nl.kpa, nl.vwc, nl.awc, nl.battery,
+              to_char(nl.recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD"T"HH24:MI:SS') AS date
+       FROM node_log nl
+       JOIN log l ON l.node_id = nl.node_id AND l.created_at = nl.recorded_at
+       WHERE l.deleted = false
+       ORDER BY nl.node_id, nl.recorded_at ASC`
     );
 
     const result = {};

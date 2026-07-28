@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { getAmbientConfig, updateAmbientConfig } from '../config/ambientConfig.js';
 import { getCalibrationConfig, updateCalibrationConfig, CALIBRATION_FIELDS } from '../config/calibrationConfig.js';
+import { getCropConfig, updateCropConfig, CROP_TYPES } from '../config/cropConfig.js';
+import { getIngestConfig, updateIngestConfig, DATA_SOURCES } from '../config/ingestConfig.js';
 
 const router = Router();
 
@@ -57,6 +59,59 @@ router.put('/calibration', async (req, res) => {
 
   try {
     res.json(await updateCalibrationConfig(patch));
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+function toCropPublicShape(config) {
+  return { plantingDate: config.planting_date, cropType: config.crop_type, updatedAt: config.updated_at };
+}
+
+router.get('/crop', (_req, res) => {
+  res.json(toCropPublicShape(getCropConfig()));
+});
+
+router.put('/crop', async (req, res) => {
+  const { plantingDate, cropType } = req.body || {};
+  const patch = {};
+
+  if (plantingDate !== undefined) {
+    if (typeof plantingDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(plantingDate)) {
+      return res.status(400).json({ error: 'plantingDate must be a YYYY-MM-DD string' });
+    }
+    patch.plantingDate = plantingDate;
+  }
+  if (cropType !== undefined) {
+    if (!CROP_TYPES.includes(cropType)) {
+      return res.status(400).json({ error: `cropType must be one of: ${CROP_TYPES.join(', ')}` });
+    }
+    patch.cropType = cropType;
+  }
+
+  try {
+    res.json(toCropPublicShape(await updateCropConfig(patch)));
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+function toIngestPublicShape(config) {
+  return { dataSource: config.data_source, updatedAt: config.updated_at };
+}
+
+router.get('/ingest', (_req, res) => {
+  res.json(toIngestPublicShape(getIngestConfig()));
+});
+
+router.put('/ingest', async (req, res) => {
+  const { dataSource } = req.body || {};
+  if (dataSource === undefined) return res.json(toIngestPublicShape(getIngestConfig()));
+  if (!DATA_SOURCES.includes(dataSource)) {
+    return res.status(400).json({ error: `dataSource must be one of: ${DATA_SOURCES.join(', ')}` });
+  }
+  try {
+    res.json(toIngestPublicShape(await updateIngestConfig({ dataSource })));
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

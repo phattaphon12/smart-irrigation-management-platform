@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { WEATHER_SUMMARY_MOCK } from '../data/mockWeatherSummary';
 import { WATER_BALANCE_MOCK } from '../data/mockWaterBalance';
 import { fetchWeatherHistory, fetchWeatherProgress } from '../lib/api/ambientWeatherClient';
+import { fetchCropConfig } from '../lib/api/cropConfigClient';
 import { aggregateDaily } from '../lib/api/dailyAggregation';
 import { calculateETo } from '../lib/calculations/evapotranspiration';
 import { calculateEtc, daysAfterPlanting } from '../lib/calculations/cropWaterUse';
@@ -21,7 +22,7 @@ function cumulativeSum(values) {
  * (timestamps, eto, etc, rain, cum_eto, cum_etc, cum_rain) เพื่อให้ chart component ใช้ shape เดียวกัน
  * ไม่ต้องแยก branch mock/live
  */
-function buildWeatherSummaryFromDaily(dailyRecords) {
+function buildWeatherSummaryFromDaily(dailyRecords, cropConfig) {
   const qcDays = dailyRecords.filter((d) => d.qcPass); // QC: รับเฉพาะวันที่ n_records >= 1000 (§4.3)
 
   const eto = [];
@@ -31,8 +32,8 @@ function buildWeatherSummaryFromDaily(dailyRecords) {
 
   qcDays.forEach((day) => {
     const { eto: etoVal } = calculateETo(day);
-    const dap = daysAfterPlanting(day.date);
-    const { etc: etcVal } = calculateEtc(etoVal, dap, 'plantCrop');
+    const dap = daysAfterPlanting(day.date, cropConfig.plantingDate);
+    const { etc: etcVal } = calculateEtc(etoVal, dap, cropConfig.cropType);
     timestamps.push(day.dayKey);
     eto.push(Number(etoVal.toFixed(2)));
     etc.push(Number(etcVal.toFixed(2)));
@@ -81,9 +82,12 @@ export function useWeatherData() {
 
     (async () => {
       try {
-        const raw = await fetchWeatherHistory(304, controller.signal); // ~ฤดูกาลอ้างอิง 304 วัน
+        const [raw, cropConfig] = await Promise.all([
+          fetchWeatherHistory(304, controller.signal), // ~ฤดูกาลอ้างอิง 304 วัน
+          fetchCropConfig().catch(() => ({ plantingDate: undefined, cropType: 'plantCrop' })), // fall back to cropWaterUse.js's own default reference date if the config endpoint is unreachable
+        ]);
         const daily = aggregateDaily(raw);
-        const built = buildWeatherSummaryFromDaily(daily);
+        const built = buildWeatherSummaryFromDaily(daily, cropConfig);
         setSummary(built);
         setSource('live');
       } catch (err) {

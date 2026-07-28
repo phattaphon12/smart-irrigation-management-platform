@@ -110,8 +110,8 @@ export default function WaterBalanceChart({ waterBalance }) {
         {Array.from({ length: Math.ceil(nL / wxStep) }, (_, k) => k * wxStep)
           .filter((i) => i < nL)
           .map((i) => (
-            <text key={i} x={xP(i)} y={MARGIN_TOP + PH + 22} fill="#64748b" fontSize="11" fontWeight="500" textAnchor="middle">
-              {labels[i]?.substring(5)}
+            <text key={i} x={xP(i)} y={MARGIN_TOP + PH + 22} fill="#64748b" fontSize="10" fontWeight="500" textAnchor="middle">
+              {labels[i]}
             </text>
           ))}
 
