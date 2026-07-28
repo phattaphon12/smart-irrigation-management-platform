@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { IconEdit } from '../components/icons/Icons';
 import NodeManagementCard from '../components/settings/NodeManagementCard';
 import CalibrationConstantsCard from '../components/settings/CalibrationConstantsCard';
+import CropConfigCard from '../components/settings/CropConfigCard';
+import DataSourceCard from '../components/settings/DataSourceCard';
+import SiteProfilesCard from '../components/settings/SiteProfilesCard';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -74,6 +77,7 @@ export default function SettingsPage() {
     <div className="settings-page">
       <div className="settings-page-grid">
         <div className="settings-top-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div className="chart-card">
           <div className="chart-hd">
             <div>
@@ -173,7 +177,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        <CropConfigCard />
+        <DataSourceCard />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <CalibrationConstantsCard />
+        <SiteProfilesCard />
+        </div>
         </div>
 
         <NodeManagementCard />

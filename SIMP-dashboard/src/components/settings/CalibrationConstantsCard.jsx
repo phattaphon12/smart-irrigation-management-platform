@@ -9,6 +9,7 @@ const FIELD_GROUPS = [
       { key: 'r_divider_kohm', label: 'Divider resistor (kΩ)' },
       { key: 'adc_max', label: 'ADC max (12-bit)' },
       { key: 'adc_valid_min', label: 'ADC valid min (open-circuit cutoff)' },
+      { key: 'adc_valid_max', label: 'ADC valid max (sensor operating limit)' },
     ],
   },
   {
@@ -117,10 +118,11 @@ export default function CalibrationConstantsCard() {
                 <li><b>Divider resistor (kΩ)</b>: the fixed resistor value in the node's voltage-divider circuit — comes from the hardware/datasheet, not something to tune by feel.</li>
                 <li><b>ADC max</b>: the ADC's full-scale value (4095 for a 12-bit ADC). Only change this if the sensor board's ADC resolution changes.</li>
                 <li><b>ADC valid min</b>: raw ADC readings at or below this are treated as an open circuit (sensor disconnected) and kPa/VWC/%AWC come back empty. Raise it if disconnected sensors still produce believable readings; lower it if valid dry readings are being rejected.</li>
+                <li><b>ADC valid max</b>: raw ADC readings at or above this are also treated as invalid — past this point resistance is high enough that the kPa equation's denominator goes unstable and can flip the result to an impossible positive value. Keep this near the sensor's real observed operating range, not the theoretical ADC max.</li>
               </ul>
             </li>
             <li>
-              <strong>Resistance → kPa</strong> (Shock &amp; Seddigh equation, Watermark 200SS) — <code>kPa = max((a×R + b) ÷ (1 − d×T − c×R), kPa clip min)</code>
+              <strong>Resistance → kPa</strong> (Shock &amp; Seddigh equation, Watermark 200SS) — <code>kPa = clamp((a×R + b) ÷ (1 − d×T − c×R), kPa clip min, 0)</code>
               <ul>
                 <li><b>a, b, c, d</b>: regression coefficients from the sensor's published calibration equation — leave as-is unless re-fitting against a lab reference for a different sensor model or batch.</li>
                 <li><b>Assumed soil temp (°C)</b>: soil temperature used in the correction term (there's no live temperature input yet) — set to the field's typical soil temperature.</li>

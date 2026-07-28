@@ -13,7 +13,7 @@ import { isNodeOffline } from '../../utils/nodeStatus';
 import ChartTooltip from './ChartTooltip';
 
 const VIEW_RANGES = {
-  kpa: { yMin: -220, yMax: 10 },
+  kpa: { yMin: -200, yMax: 0, tickStep: 20 },
   vwc: { yMin: 0.02, yMax: 0.45 },
   awc: { yMin: -10, yMax: 180 },
 };
@@ -23,7 +23,15 @@ const KPA_ZONES = [
   { a: -10, b: -33, color: '#f0fdf4' },
   { a: -33, b: -60, color: '#fffbeb' },
   { a: -60, b: -100, color: '#fff7ed' },
-  { a: -100, b: -220, color: '#fef2f2' },
+  { a: -100, b: -200, color: '#fef2f2' },
+];
+
+// Irrigation trigger reference lines (dev_reference_sensor_et_v1.md §3.5) — the
+// kPa threshold at which each treatment's allowed depletion is reached.
+const KPA_TRIGGER_LINES = [
+  { v: -30, color: '#eab308', label: 'T1 trigger (−30 kPa, 25% depletion)' },
+  { v: -60, color: '#f97316', label: 'T2 trigger (−60 kPa, 50% depletion)' },
+  { v: -100, color: '#ef4444', label: 'T3 trigger (−100 kPa, 75% depletion)' },
 ];
 
 const AWC_ZONES = [
@@ -70,9 +78,14 @@ function formatTooltipTitle(label) {
 
 const H = SOIL_CHART_HEIGHT + MARGIN_TOP + MARGIN_BOTTOM;
 
+// Break the line rather than draw a straight connector across a real data gap
+// (sensor offline, missed reports) — 60 min = 4x the ~15-min field reporting
+// interval, so it tolerates one or two missed reports without fragmenting.
+const GAP_BREAK_MS = 60 * 60 * 1000;
+
 export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewMode, nodeIds, controls }) {
   const [hover, setHover] = useState(null); // { idx, mouseX, mouseY }
-  const { yMin, yMax } = VIEW_RANGES[viewMode];
+  const { yMin, yMax, tickStep } = VIEW_RANGES[viewMode];
   const nL = labels.length;
   const xStep = Math.max(1, Math.floor(nL / 12));
   const colW = nL > 1 ? PLOT_WIDTH / (nL - 1) : PLOT_WIDTH;
@@ -90,18 +103,22 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
       const node = soilNodes[id];
       const src = viewMode === 'kpa' ? node.kpa : viewMode === 'vwc' ? node.vwc : node.awc;
       const byDate = new Map(node.timestamps.map((t, j) => [t, src[j]]));
-      const coords = [];
+      const segments = [[]];
+      let prevTime = null;
       labels.forEach((label, li) => {
         const raw = byDate.get(label);
         if (raw == null) return;
+        const t = new Date(label).getTime();
+        if (prevTime != null && t - prevTime > GAP_BREAK_MS) segments.push([]);
+        prevTime = t;
         const clipped = viewMode === 'kpa' ? Math.max(raw, yMin) : Math.min(Math.max(raw, yMin), yMax);
-        coords.push({ x: xToPx(li), y: yToPx(clipped) });
+        segments[segments.length - 1].push({ x: xToPx(li), y: yToPx(clipped) });
       });
       return {
         id,
         index,
-        coords,
-        points: coords.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),
+        coords: segments.flat(),
+        pointsList: segments.filter((s) => s.length > 1).map((s) => s.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')),
         flagged: node.meta.flagged,
         offline: isNodeOffline(node),
         byDate,
@@ -111,13 +128,18 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
   }, [activeList, soilNodes, viewMode, labels, yMin, yMax]);
 
   const gridTicks = useMemo(() => {
+    if (tickStep) {
+      const ticks = [];
+      for (let val = yMax; val >= yMin - 1e-9; val -= tickStep) ticks.push({ val, y: yToPx(val) });
+      return ticks;
+    }
     const nT = 8;
     return Array.from({ length: nT + 1 }, (_, i) => {
       const val = yMin + ((yMax - yMin) * i) / nT;
       return { val, y: yToPx(val) };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [yMin, yMax]);
+  }, [yMin, yMax, tickStep]);
 
   const subtitle =
     activeList.length === 0
@@ -168,6 +190,13 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
               if (bottom <= top) return null;
               return <rect key={i} x={MARGIN_LEFT} y={top} width={PLOT_WIDTH} height={bottom - top} fill={z.color} />;
             })}
+          {viewMode === 'kpa' &&
+            KPA_TRIGGER_LINES.map((t) => (
+              <g key={t.v}>
+                <line x1={MARGIN_LEFT} y1={yToPx(t.v)} x2={MARGIN_LEFT + PLOT_WIDTH} y2={yToPx(t.v)} stroke={t.color} strokeWidth="1.5" strokeDasharray="6,4" />
+                <text x={MARGIN_LEFT + PLOT_WIDTH + 8} y={yToPx(t.v) + 4} fill={t.color} fontSize="11" fontWeight="600">{t.label}</text>
+              </g>
+            ))}
           {viewMode === 'vwc' && (
             <>
               <line x1={MARGIN_LEFT} y1={yToPx(0.193)} x2={MARGIN_LEFT + PLOT_WIDTH} y2={yToPx(0.193)} stroke="#10b981" strokeWidth="1.5" strokeDasharray="6,4" />
@@ -227,21 +256,23 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
               </g>
             ))}
 
-          {/* per-node polylines — only draws with 2+ points, so single-reading nodes
-              (e.g. right after their first live ingest) would otherwise render nothing
-              at all; the markers below cover that case and make every reading visible */}
+          {/* per-node polylines — one <polyline> per contiguous segment, so a real
+              data gap (sensor offline, missed reports — see GAP_BREAK_MS) shows as
+              a break instead of a straight line implying continuous readings.
+              Single-point segments are dropped here; the markers below still cover
+              them (e.g. right after a node's first live ingest) */}
           {lines.map((l) =>
-            l.coords.length > 1 ? (
+            l.pointsList.map((points, si) => (
               <polyline
-                key={l.id}
-                points={l.points}
+                key={`${l.id}-${si}`}
+                points={points}
                 fill="none"
                 stroke={colorForNodeIndex(l.index)}
                 strokeWidth={l.offline || l.flagged ? 1.5 : 2.5}
                 strokeOpacity={l.offline ? 0.15 : l.flagged ? 0.25 : 0.85}
                 strokeDasharray={l.offline || l.flagged ? '4,4' : undefined}
               />
-            ) : null
+            ))
           )}
 
           {/* per-point markers — always drawn so individual readings (sparse data,

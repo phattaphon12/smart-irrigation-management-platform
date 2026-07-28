@@ -137,3 +137,13 @@ export function IconLogs({ size = 16, ...props }) {
     </svg>
   );
 }
+
+export function IconGauge({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M3 13a7 7 0 1 1 14 0" />
+      <line x1="10" y1="13" x2="13.5" y2="8.5" />
+      <line x1="3" y1="16.5" x2="17" y2="16.5" />
+    </svg>
+  );
+}

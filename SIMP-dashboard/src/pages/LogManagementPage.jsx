@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchLogs, deleteLog, bulkDeleteLogs, clearAllLogs, recalculateLog, recalculateAllLogs, buildExportUrl } from '../lib/api/logsClient';
+import {
+  fetchLogs, deleteLog, restoreLog, bulkDeleteLogs, bulkRestoreLogs,
+  clearAllLogs, restoreAllLogs, recalculateLog, recalculateAllLogs, buildExportUrl,
+} from '../lib/api/logsClient';
 import { formatDateTime, formatNumber } from '../utils/formatters';
-import { IconTrash, IconRefresh, IconChevronDown, IconWarning } from '../components/icons/Icons';
+import { IconTrash, IconRestore, IconRefresh, IconChevronDown, IconWarning } from '../components/icons/Icons';
 
 const PAGE_SIZE = 50;
-const POLL_MS = 60000; // match the sensor nodes' ~1-reading-per-minute cadence
+const POLL_MS = 60000; // dashboard refresh rate — sensors themselves report every ~15 min, this just picks up new rows quickly once they land
+
+const SOURCE_LABEL = { field: 'Field', bench: 'Bench', demo: 'Demo' };
+const SOURCE_BADGE_CLASS = { field: 'bdg-ok', bench: 'bdg-warn', demo: 'bdg-info' };
 
 const COLUMNS = [
   { key: 'created_at', label: 'Timestamp' },
   { key: 'node_code', label: 'Sensor' },
-  { key: 'rst', label: 'RST' },
+  { key: 'data_source', label: 'Source', title: 'Bench test / field / demo — set on the Settings page, stamped onto readings as they arrive. Not sortable.' },
+  { key: 'rst', label: 'RST', title: 'Resistance (Ω) computed on-device by the sensor firmware — reported for reference only. Not used by this app’s own kPa/VWC/%AWC pipeline (which derives resistance from RADC instead), so small differences from that recomputed value are expected and not a bug.' },
   { key: 'radc', label: 'RADC' },
   { key: 'batt', label: 'BATT' },
   { key: 'badc', label: 'BADC' },
@@ -28,6 +35,7 @@ function isInvalidReading(row) {
 
 export default function LogManagementPage({ nodeIds }) {
   const [nodeFilter, setNodeFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
   const [rows, setRows] = useState([]);
@@ -39,12 +47,15 @@ export default function LogManagementPage({ nodeIds }) {
   const [recalcAllBusy, setRecalcAllBusy] = useState(false);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
   const [clearAllBusy, setClearAllBusy] = useState(false);
+  const [restoreAllBusy, setRestoreAllBusy] = useState(false);
+  const [bulkActionBusy, setBulkActionBusy] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [status, setStatus] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const load = (nextOffset = 0) => {
     setLoading(true);
-    fetchLogs({ nodeCode: nodeFilter || undefined, limit: PAGE_SIZE, offset: nextOffset, sort: sortKey, dir: sortDir })
+    fetchLogs({ nodeCode: nodeFilter || undefined, limit: PAGE_SIZE, offset: nextOffset, sort: sortKey, dir: sortDir, includeDeleted: showDeleted, source: sourceFilter || undefined })
       .then(({ rows: r, total: t }) => {
         setRows((prev) => (nextOffset === 0 ? r : [...prev, ...r]));
         setTotal(t);
@@ -59,7 +70,7 @@ export default function LogManagementPage({ nodeIds }) {
     setSelectedIds(new Set());
     load(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeFilter, sortKey, sortDir]);
+  }, [nodeFilter, sourceFilter, sortKey, sortDir, showDeleted]);
 
   // Background auto-refresh — re-fetches the same window the user has
   // already loaded (not just the first page, so "Load more" progress isn't
@@ -71,7 +82,7 @@ export default function LogManagementPage({ nodeIds }) {
   useEffect(() => {
     const id = setInterval(() => {
       const windowSize = Math.max(rowsLengthRef.current, PAGE_SIZE);
-      fetchLogs({ nodeCode: nodeFilter || undefined, limit: windowSize, offset: 0, sort: sortKey, dir: sortDir })
+      fetchLogs({ nodeCode: nodeFilter || undefined, limit: windowSize, offset: 0, sort: sortKey, dir: sortDir, includeDeleted: showDeleted, source: sourceFilter || undefined })
         .then(({ rows: r, total: t }) => {
           setRows(r);
           setTotal(t);
@@ -79,9 +90,10 @@ export default function LogManagementPage({ nodeIds }) {
         .catch(() => {});
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [nodeFilter, sortKey, sortDir]);
+  }, [nodeFilter, sourceFilter, sortKey, sortDir, showDeleted]);
 
   const handleSort = (key) => {
+    if (key === 'data_source') return; // backend can't sort by this — column exists for display/filtering only
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -113,13 +125,23 @@ export default function LogManagementPage({ nodeIds }) {
     });
   };
 
+  // Deletes are soft (see routes/logs.js) — a deleted row just gets marked
+  // and hidden by default, never actually erased, so this doubles as the
+  // restore action once "Show Deleted" is on and the row already has deleted=true.
   const handleDelete = async (row) => {
-    if (!window.confirm(`Delete this reading from ${row.node_code} at ${formatDateTime(row.created_at)}?`)) return;
+    const restoring = !!row.deleted;
+    if (!window.confirm(`${restoring ? 'Restore' : 'Delete'} this reading from ${row.node_code} at ${formatDateTime(row.created_at)}?`)) return;
     setBusyId(row.id);
     try {
-      await deleteLog(row.id);
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
-      setTotal((t) => t - 1);
+      if (restoring) await restoreLog(row.id);
+      else await deleteLog(row.id);
+
+      if (showDeleted) {
+        setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, deleted: !restoring } : r)));
+      } else {
+        setRows((prev) => prev.filter((r) => r.id !== row.id));
+        setTotal((t) => t - 1);
+      }
       setSelectedIds((prev) => {
         if (!prev.has(row.id)) return prev;
         const next = new Set(prev);
@@ -127,7 +149,7 @@ export default function LogManagementPage({ nodeIds }) {
         return next;
       });
     } catch (err) {
-      setStatus({ type: 'err', message: `Delete failed: ${err.message}` });
+      setStatus({ type: 'err', message: `${restoring ? 'Restore' : 'Delete'} failed: ${err.message}` });
     } finally {
       setBusyId(null);
     }
@@ -136,8 +158,8 @@ export default function LogManagementPage({ nodeIds }) {
   const handleBulkDelete = async () => {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
-    if (!window.confirm(`Delete ${ids.length} selected reading${ids.length === 1 ? '' : 's'}? This can't be undone.`)) return;
-    setBulkDeleteBusy(true);
+    if (!window.confirm(`Delete ${ids.length} selected reading${ids.length === 1 ? '' : 's'}? You can undo this later from "Show Deleted".`)) return;
+    setBulkActionBusy(true);
     setStatus(null);
     try {
       const { deleted } = await bulkDeleteLogs(ids);
@@ -148,7 +170,24 @@ export default function LogManagementPage({ nodeIds }) {
     } catch (err) {
       setStatus({ type: 'err', message: `Delete selected failed: ${err.message}` });
     } finally {
-      setBulkDeleteBusy(false);
+      setBulkActionBusy(false);
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkActionBusy(true);
+    setStatus(null);
+    try {
+      const { restored } = await bulkRestoreLogs(ids);
+      setRows((prev) => prev.map((r) => (selectedIds.has(r.id) ? { ...r, deleted: false } : r)));
+      setSelectedIds(new Set());
+      setStatus({ type: 'ok', message: `Restored ${restored} row${restored === 1 ? '' : 's'}` });
+    } catch (err) {
+      setStatus({ type: 'err', message: `Restore selected failed: ${err.message}` });
+    } finally {
+      setBulkActionBusy(false);
     }
   };
 
@@ -180,19 +219,32 @@ export default function LogManagementPage({ nodeIds }) {
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm(`Permanently delete ALL ${total.toLocaleString()} log rows from every sensor? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ALL ${total.toLocaleString()} log rows from every sensor? You can undo this from "Show Deleted".`)) return;
     setClearAllBusy(true);
     setStatus(null);
     try {
       const { deleted } = await clearAllLogs();
-      setRows([]);
-      setTotal(0);
-      setSelectedIds(new Set());
-      setStatus({ type: 'ok', message: `Cleared all log data — deleted ${deleted.toLocaleString()} rows` });
+      setStatus({ type: 'ok', message: `Cleared all log data — ${deleted.toLocaleString()} rows marked deleted (restorable via "Show Deleted")` });
+      load(0);
     } catch (err) {
       setStatus({ type: 'err', message: `Clear all failed: ${err.message}` });
     } finally {
       setClearAllBusy(false);
+    }
+  };
+
+  const handleRestoreAll = async () => {
+    if (!window.confirm(`Restore all deleted log rows?`)) return;
+    setRestoreAllBusy(true);
+    setStatus(null);
+    try {
+      const { restored } = await restoreAllLogs();
+      setStatus({ type: 'ok', message: `Restored ${restored.toLocaleString()} rows` });
+      load(0);
+    } catch (err) {
+      setStatus({ type: 'err', message: `Restore all failed: ${err.message}` });
+    } finally {
+      setRestoreAllBusy(false);
     }
   };
 
@@ -225,19 +277,40 @@ export default function LogManagementPage({ nodeIds }) {
                 <option key={id} value={id}>{id}</option>
               ))}
             </select>
+            <select className="settings-input" style={{ width: 120 }} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+              <option value="">All sources</option>
+              <option value="field">Field</option>
+              <option value="bench">Bench</option>
+              <option value="demo">Demo</option>
+            </select>
+            <button className={`f-btn${showDeleted ? ' active' : ''}`} onClick={() => setShowDeleted((s) => !s)}>
+              {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
+            </button>
             {selectedIds.size > 0 ? (
-              <button className="f-btn" onClick={handleBulkDelete} disabled={bulkDeleteBusy} style={{ color: '#b91c1c' }}>
-                {bulkDeleteBusy ? 'Deleting…' : <><IconTrash size={12} /> Clear Selected ({selectedIds.size})</>}
-              </button>
+              showDeleted ? (
+                <button className="f-btn" onClick={handleBulkRestore} disabled={bulkActionBusy}>
+                  {bulkActionBusy ? 'Restoring…' : <><IconRestore size={12} /> Restore Selected ({selectedIds.size})</>}
+                </button>
+              ) : (
+                <button className="f-btn" onClick={handleBulkDelete} disabled={bulkActionBusy} style={{ color: '#b91c1c' }}>
+                  {bulkActionBusy ? 'Deleting…' : <><IconTrash size={12} /> Clear Selected ({selectedIds.size})</>}
+                </button>
+              )
             ) : (
               <button className="f-btn" onClick={handleRecalculateAll} disabled={recalcAllBusy}>
                 {recalcAllBusy ? 'Recalculating…' : 'Recalculate All'}
               </button>
             )}
             <a className="f-btn" href={buildExportUrl()} download>Export CSV</a>
-            <button className="f-btn" onClick={handleClearAll} disabled={clearAllBusy || total === 0} style={{ color: '#b91c1c' }} title="Delete every log row, not just what's loaded on this page">
-              {clearAllBusy ? 'Clearing…' : <><IconTrash size={12} /> Clear All Data</>}
-            </button>
+            {showDeleted ? (
+              <button className="f-btn" onClick={handleRestoreAll} disabled={restoreAllBusy || total === 0}>
+                {restoreAllBusy ? 'Restoring…' : <><IconRestore size={12} /> Restore All</>}
+              </button>
+            ) : (
+              <button className="f-btn" onClick={handleClearAll} disabled={clearAllBusy || total === 0} style={{ color: '#b91c1c' }} title="Delete every log row, not just what's loaded on this page — soft delete, recoverable via Show Deleted">
+                {clearAllBusy ? 'Clearing…' : <><IconTrash size={12} /> Clear All Data</>}
+              </button>
+            )}
           </div>
         </div>
 
@@ -259,7 +332,7 @@ export default function LogManagementPage({ nodeIds }) {
                         <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} title="Select all loaded rows" />
                       </th>
                       {COLUMNS.map((col) => (
-                        <th key={col.key}>
+                        <th key={col.key} title={col.title}>
                           <button type="button" className="log-sort-btn" onClick={() => handleSort(col.key)}>
                             {col.label}
                             {sortKey === col.key && (
@@ -277,13 +350,14 @@ export default function LogManagementPage({ nodeIds }) {
                       return (
                       <tr
                         key={row.id}
-                        className={[selectedIds.has(row.id) && 'row-selected', invalid && 'row-invalid'].filter(Boolean).join(' ') || undefined}
+                        className={[selectedIds.has(row.id) && 'row-selected', invalid && 'row-invalid', row.deleted && 'row-deleted'].filter(Boolean).join(' ') || undefined}
                       >
                         <td>
                           <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelected(row.id)} />
                         </td>
-                        <td>{formatDateTime(row.created_at)}</td>
+                        <td>{formatDateTime(row.created_at)}{row.deleted && <span className="bdg bdg-crit" style={{ marginLeft: 6 }}>Deleted</span>}</td>
                         <td style={{ fontWeight: 700 }}>{row.node_code}</td>
+                        <td><span className={`bdg ${SOURCE_BADGE_CLASS[row.data_source] || 'bdg'}`}>{SOURCE_LABEL[row.data_source] || row.data_source}</span></td>
                         <td className={invalid ? 'cell-invalid' : undefined} title={invalid ? 'Sensor fault — RADC was outside the valid range for this reading' : undefined}>
                           {invalid && <IconWarning size={10} />}{formatNumber(row.rst, 2)}
                         </td>
@@ -300,9 +374,15 @@ export default function LogManagementPage({ nodeIds }) {
                             <button className="f-btn" title="Recalculate" onClick={() => handleRecalculate(row)} disabled={busyId === row.id}>
                               <IconRefresh size={12} />
                             </button>
-                            <button className="f-btn" title="Delete" onClick={() => handleDelete(row)} disabled={busyId === row.id}>
-                              <IconTrash size={12} />
-                            </button>
+                            {row.deleted ? (
+                              <button className="f-btn" title="Restore" onClick={() => handleDelete(row)} disabled={busyId === row.id}>
+                                <IconRestore size={12} />
+                              </button>
+                            ) : (
+                              <button className="f-btn" title="Delete" onClick={() => handleDelete(row)} disabled={busyId === row.id}>
+                                <IconTrash size={12} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

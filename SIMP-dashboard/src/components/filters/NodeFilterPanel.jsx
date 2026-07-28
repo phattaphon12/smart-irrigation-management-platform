@@ -1,5 +1,5 @@
 import { colorForNodeIndex } from '../../utils/nodeColors';
-import { isNodeOffline } from '../../utils/nodeStatus';
+import { isNodeOffline, isNodeStuckAtFloor } from '../../utils/nodeStatus';
 import { IconWarning } from '../icons/Icons';
 
 export default function NodeFilterPanel({
@@ -51,19 +51,26 @@ export default function NodeFilterPanel({
           const dotClass = meta.depth === 20 ? 'dot-20' : meta.depth === 40 ? 'dot-40' : 'dot-spare';
           const isOn = activeNodes.has(nodeId);
           const offline = isNodeOffline(node);
+          const stuck = !offline && isNodeStuckAtFloor(node);
           return (
             <button
               key={nodeId}
-              className={`nb${isOn ? ' on' : ''}${offline ? ' nb-offline' : ''}`}
+              className={`nb${isOn ? ' on' : ''}${offline ? ' nb-offline' : ''}${stuck ? ' nb-stuck' : ''}`}
               style={{ '--nc': colorForNodeIndex(index) }}
-              title={`Treatment: ${meta.treatment} · Depth: ${meta.depth}cm · Status: ${meta.status}${meta.position ? ' · ' + meta.position : ''}${offline ? ' · Offline (no data for over 1 hour)' : ''}`}
+              title={`Treatment: ${meta.treatment} · Depth: ${meta.depth}cm · Status: ${meta.status}${meta.position ? ' · ' + meta.position : ''}${offline ? ' · Offline (no data for over 45 minutes)' : ''}${stuck ? ' · Reading pinned at the clip floor for several reports in a row — possible sensor fault' : ''}`}
               onClick={() => onToggleNode(nodeId)}
             >
               <span className="nm" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 {meta.flagged && <IconWarning size={10} />}
                 {nodeId.replace('Node_', 'S')}
               </span>
-              {offline ? <span className="offline-tag">Offline</span> : <span className={`depth-dot ${dotClass}`} />}
+              {offline ? (
+                <span className="offline-tag">Offline</span>
+              ) : stuck ? (
+                <span className="offline-tag" style={{ color: '#b45309' }}>Stuck</span>
+              ) : (
+                <span className={`depth-dot ${dotClass}`} />
+              )}
             </button>
           );
         })}

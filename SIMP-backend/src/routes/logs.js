@@ -10,12 +10,18 @@ import { adcToAll } from '../lib/soilMoisture.js';
  * ../config/calibrationConfig.js), so editing a constant on the Settings page
  * only reaches historical rows once this is triggered — new ingests already
  * pick it up immediately.
+ *
+ * Deletes are soft (log.deleted) — raw sensor readings are research data and
+ * one accidental click shouldn't be able to destroy it permanently. GET /
+ * excludes deleted rows unless ?includeDeleted=true is passed; the same
+ * exclusion happens in ../routes/soilNodes.js so a deleted reading also
+ * disappears from the live dashboard chart, not just this table.
  */
 
 const router = Router();
 
 const LIST_QUERY = `
-  SELECT l.id, l.node_id, n.node_code, l.rst, l.radc, l.batt, l.badc, l.created_at,
+  SELECT l.id, l.node_id, n.node_code, l.rst, l.radc, l.batt, l.badc, l.created_at, l.deleted, l.data_source,
          nl.id AS node_log_id, nl.kpa, nl.vwc, nl.awc
   FROM log l
   JOIN nodes n ON n.node_id = l.node_id
@@ -36,32 +42,40 @@ const SORTABLE_COLUMNS = {
   awc: 'nl.awc',
 };
 
+const VALID_SOURCES = ['field', 'bench', 'demo'];
+
 router.get('/', async (req, res) => {
   // node_code (e.g. "Node_01") is what the frontend's node picker actually has
   // on hand (see soilNodes.js — it never exposes the numeric node_id to the
   // browser); node_id is also accepted for direct API/curl use.
   const nodeCode = req.query.node_code || null;
   const nodeId = req.query.node_id ? Number(req.query.node_id) : null;
+  const source = VALID_SOURCES.includes(req.query.source) ? req.query.source : null;
+  const includeDeleted = req.query.includeDeleted === 'true';
   const limit = Math.min(Number(req.query.limit) || 200, 1000);
   const offset = Number(req.query.offset) || 0;
   const sortCol = SORTABLE_COLUMNS[req.query.sort] || SORTABLE_COLUMNS.created_at;
   const sortDir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
 
-  const filterCol = nodeCode ? 'n.node_code' : nodeId ? 'l.node_id' : null;
-  const filterVal = nodeCode || nodeId;
-  const where = filterCol ? `WHERE ${filterCol} = $1` : '';
-  const params = filterCol ? [filterVal, limit, offset] : [limit, offset];
-  const limitParam = filterCol ? '$2' : '$1';
-  const offsetParam = filterCol ? '$3' : '$2';
+  const conditions = [];
+  const params = [];
+  if (nodeCode) { conditions.push(`n.node_code = $${params.length + 1}`); params.push(nodeCode); }
+  else if (nodeId) { conditions.push(`l.node_id = $${params.length + 1}`); params.push(nodeId); }
+  if (source) { conditions.push(`l.data_source = $${params.length + 1}`); params.push(source); }
+  if (!includeDeleted) conditions.push('l.deleted = false');
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const limitParam = `$${params.length + 1}`;
+  const offsetParam = `$${params.length + 2}`;
 
   try {
     const { rows } = await pool.query(
       `${LIST_QUERY} ${where} ORDER BY ${sortCol} ${sortDir} NULLS LAST, l.id ${sortDir} LIMIT ${limitParam} OFFSET ${offsetParam}`,
-      params
+      [...params, limit, offset]
     );
     const { rows: countRows } = await pool.query(
-      `SELECT count(*) FROM log l JOIN nodes n ON n.node_id = l.node_id ${filterCol ? `WHERE ${filterCol} = $1` : ''}`,
-      filterCol ? [filterVal] : []
+      `SELECT count(*) FROM log l JOIN nodes n ON n.node_id = l.node_id ${where}`,
+      params
     );
     res.json({ rows, total: Number(countRows[0].count) });
   } catch (err) {
@@ -69,86 +83,61 @@ router.get('/', async (req, res) => {
   }
 });
 
-// recorded_at is looked up via a subquery against log.id (not a JS Date
-// value) so it matches node_log to microsecond precision — see the note in
-// ingest.js about why a JS-Date round-trip would truncate and miss.
-async function deleteLogRow(client, id) {
-  const { rows } = await client.query('SELECT node_id FROM log WHERE id = $1', [id]);
-  if (rows.length === 0) return false;
-  await client.query(
-    `DELETE FROM node_log WHERE node_id = $1 AND recorded_at = (SELECT created_at FROM log WHERE id = $2)`,
-    [rows[0].node_id, id]
-  );
-  await client.query('DELETE FROM log WHERE id = $1', [id]);
-  return true;
+async function setDeleted(client, id, deleted) {
+  const { rowCount } = await client.query('UPDATE log SET deleted = $1 WHERE id = $2', [deleted, id]);
+  return rowCount > 0;
 }
 
 router.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const found = await deleteLogRow(client, id);
-    if (!found) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: `no log row with id ${id}` });
-    }
-    await client.query('COMMIT');
-    res.json({ ok: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(502).json({ error: err.message });
-  } finally {
-    client.release();
-  }
+  const found = await setDeleted(pool, id, true);
+  if (!found) return res.status(404).json({ error: `no log row with id ${id}` });
+  res.json({ ok: true });
 });
 
-// Bulk "Clear data" action for the Log Management table's row-selection UI.
+router.post('/:id/restore', async (req, res) => {
+  const id = Number(req.params.id);
+  const found = await setDeleted(pool, id, false);
+  if (!found) return res.status(404).json({ error: `no log row with id ${id}` });
+  res.json({ ok: true });
+});
+
+// Bulk "Clear selected" action for the Log Management table's row-selection UI.
 router.post('/bulk-delete', async (req, res) => {
   const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Number.isFinite) : [];
   if (ids.length === 0) {
     return res.status(400).json({ error: 'ids (non-empty array of log row ids) is required' });
   }
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    let deleted = 0;
-    for (const id of ids) {
-      if (await deleteLogRow(client, id)) deleted += 1;
-    }
-    await client.query('COMMIT');
-    res.json({ ok: true, deleted });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(502).json({ error: err.message });
-  } finally {
-    client.release();
-  }
+  const { rowCount } = await pool.query('UPDATE log SET deleted = true WHERE id = ANY($1)', [ids]);
+  res.json({ ok: true, deleted: rowCount });
 });
 
-// "Clear all data" — wipes every row, not just what the client has loaded
-// (bulk-delete above only covers ids the client already knows about).
-router.post('/clear-all', async (_req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM node_log');
-    const { rowCount } = await client.query('DELETE FROM log');
-    await client.query('COMMIT');
-    res.json({ ok: true, deleted: rowCount });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(502).json({ error: err.message });
-  } finally {
-    client.release();
+router.post('/bulk-restore', async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Number.isFinite) : [];
+  if (ids.length === 0) {
+    return res.status(400).json({ error: 'ids (non-empty array of log row ids) is required' });
   }
+  const { rowCount } = await pool.query('UPDATE log SET deleted = false WHERE id = ANY($1)', [ids]);
+  res.json({ ok: true, restored: rowCount });
+});
+
+// "Clear all data" — marks every non-deleted row deleted, not just what the
+// client has loaded. Soft like every other delete here, so it's reversible
+// via "Show Deleted" + restore rather than a true unrecoverable wipe.
+router.post('/clear-all', async (_req, res) => {
+  const { rowCount } = await pool.query('UPDATE log SET deleted = true WHERE deleted = false');
+  res.json({ ok: true, deleted: rowCount });
+});
+
+router.post('/restore-all', async (_req, res) => {
+  const { rowCount } = await pool.query('UPDATE log SET deleted = false WHERE deleted = true');
+  res.json({ ok: true, restored: rowCount });
 });
 
 async function recalculateRow(client, logRow) {
   const { kpa, vwc, awc } = adcToAll(logRow.radc);
-  // Same precision concern as ingest.js/DELETE above — recorded_at comes from
-  // a subquery against log.id, not the JS-Date `logRow.created_at`.
+  // Same precision concern as ingest.js — recorded_at comes from a subquery
+  // against log.id, not a JS-Date value (see the note there for why).
   await client.query(
     `INSERT INTO node_log (node_id, kpa, vwc, awc, battery, recorded_at)
      SELECT $1, $2, $3, $4, $5, created_at FROM log WHERE id = $6
@@ -207,8 +196,8 @@ function csvField(v) {
 
 router.get('/export.csv', async (_req, res) => {
   try {
-    const { rows } = await pool.query(`${LIST_QUERY} ORDER BY l.created_at DESC`);
-    const header = ['id', 'node_id', 'node_code', 'rst', 'radc', 'batt', 'badc', 'created_at', 'kpa', 'vwc', 'awc'];
+    const { rows } = await pool.query(`${LIST_QUERY} WHERE l.deleted = false ORDER BY l.created_at DESC`);
+    const header = ['id', 'node_id', 'node_code', 'rst', 'radc', 'batt', 'badc', 'data_source', 'created_at', 'kpa', 'vwc', 'awc'];
     const lines = [header.join(',')];
     for (const r of rows) {
       lines.push(header.map((col) => csvField(r[col])).join(','));

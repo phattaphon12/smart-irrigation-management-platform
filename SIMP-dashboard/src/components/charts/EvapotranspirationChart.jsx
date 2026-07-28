@@ -7,12 +7,28 @@ const CUM_ET_MAX = 1100;
 const CUM_RAIN_MAX = 700;
 const DAILY_ET_MAX = 7;
 
+const MS_PER_DAY = 86400000;
+
 export default function EvapotranspirationChart({ summary, seriesOn, cumulative }) {
   const [hover, setHover] = useState(null);
   const labels = summary.timestamps;
   const nL = labels.length;
 
   const wxP = (i) => (nL > 1 ? MARGIN_LEFT + (PLOT_WIDTH * i) / (nL - 1) : MARGIN_LEFT);
+
+  // Days that failed QC (see dailyAggregation.js — n_records < 1000) are
+  // dropped from `labels` entirely rather than plotted with a fabricated
+  // value, so a cumulative line silently reads low unless that skip is
+  // visible — mark each gap instead of leaving it invisible (addendum §4.7).
+  const gaps = useMemo(() => {
+    const found = [];
+    for (let i = 1; i < nL; i += 1) {
+      const daysBetween = Math.round((new Date(labels[i]) - new Date(labels[i - 1])) / MS_PER_DAY);
+      if (daysBetween > 1) found.push({ x: (wxP(i - 1) + wxP(i)) / 2, skipped: daysBetween - 1 });
+    }
+    return found;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labels, nL]);
 
   const rMax = useMemo(() => {
     let m = 50;
@@ -119,6 +135,13 @@ export default function EvapotranspirationChart({ summary, seriesOn, cumulative 
             )}
           </>
         )}
+
+        {gaps.map((g, i) => (
+          <g key={i}>
+            <line x1={g.x} y1={MARGIN_TOP} x2={g.x} y2={MARGIN_TOP + ET_CHART_HEIGHT} stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3,3" opacity="0.7" />
+            <title>{`${g.skipped} day${g.skipped === 1 ? '' : 's'} skipped here — no weather data passed QC (< 1000 records/day), so cumulative totals don't include ${g.skipped === 1 ? 'it' : 'them'}`}</title>
+          </g>
+        ))}
 
         <rect x={MARGIN_LEFT} y={MARGIN_TOP} width={PLOT_WIDTH} height={ET_CHART_HEIGHT} fill="none" stroke="#cbd5e1" strokeWidth="1.5" />
 
