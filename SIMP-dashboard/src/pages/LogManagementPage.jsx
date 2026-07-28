@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchLogs, deleteLog, bulkDeleteLogs, clearAllLogs, recalculateLog, recalculateAllLogs, buildExportUrl } from '../lib/api/logsClient';
 import { formatDateTime, formatNumber } from '../utils/formatters';
-import { IconTrash, IconRefresh, IconChevronDown } from '../components/icons/Icons';
+import { IconTrash, IconRefresh, IconChevronDown, IconWarning } from '../components/icons/Icons';
 
 const PAGE_SIZE = 50;
 const POLL_MS = 60000; // match the sensor nodes' ~1-reading-per-minute cadence
@@ -17,6 +17,14 @@ const COLUMNS = [
   { key: 'vwc', label: 'VWC' },
   { key: 'awc', label: '%AWC' },
 ];
+
+// adcToAll() (backend) only returns null kPa/VWC/%AWC when RADC fell outside
+// the sensor's valid range (open circuit / firmware glitch) — so a null kPa
+// here always means "this reading was discarded as bad," never "not yet
+// computed." Reuse that instead of re-deriving our own RST/RADC thresholds.
+function isInvalidReading(row) {
+  return row.kpa == null;
+}
 
 export default function LogManagementPage({ nodeIds }) {
   const [nodeFilter, setNodeFilter] = useState('');
@@ -204,6 +212,11 @@ export default function LogManagementPage({ nodeIds }) {
             <div className="chart-sub">
               {total.toLocaleString()} readings{nodeFilter ? ` · ${nodeFilter}` : ''} — kPa/VWC/%AWC are computed from RADC using the current calibration constants
             </div>
+            <div className="chart-sub">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#b91c1c' }}>
+                <IconWarning size={11} />Rows highlighted in red had an out-of-range RADC (sensor fault/open circuit) — kept for reference, but kPa/VWC/%AWC are intentionally left blank
+              </span>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <select className="settings-input" style={{ width: 140 }} value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}>
@@ -259,15 +272,24 @@ export default function LogManagementPage({ nodeIds }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} className={selectedIds.has(row.id) ? 'row-selected' : undefined}>
+                    {rows.map((row) => {
+                      const invalid = isInvalidReading(row);
+                      return (
+                      <tr
+                        key={row.id}
+                        className={[selectedIds.has(row.id) && 'row-selected', invalid && 'row-invalid'].filter(Boolean).join(' ') || undefined}
+                      >
                         <td>
                           <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelected(row.id)} />
                         </td>
                         <td>{formatDateTime(row.created_at)}</td>
                         <td style={{ fontWeight: 700 }}>{row.node_code}</td>
-                        <td>{formatNumber(row.rst, 2)}</td>
-                        <td>{row.radc ?? '—'}</td>
+                        <td className={invalid ? 'cell-invalid' : undefined} title={invalid ? 'Sensor fault — RADC was outside the valid range for this reading' : undefined}>
+                          {invalid && <IconWarning size={10} />}{formatNumber(row.rst, 2)}
+                        </td>
+                        <td className={invalid ? 'cell-invalid' : undefined} title={invalid ? 'Below the sensor’s valid ADC range — treated as an open circuit' : undefined}>
+                          {invalid && <IconWarning size={10} />}{row.radc ?? '—'}
+                        </td>
                         <td>{row.batt ?? '—'}</td>
                         <td>{row.badc ?? '—'}</td>
                         <td>{row.kpa != null ? formatNumber(row.kpa, 1) : '—'}</td>
@@ -284,7 +306,8 @@ export default function LogManagementPage({ nodeIds }) {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

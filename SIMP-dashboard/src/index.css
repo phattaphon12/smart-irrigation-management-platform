@@ -461,6 +461,10 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .node-table tr:last-child td { border-bottom: none; }
 .node-table tbody tr:hover td { background: var(--bg); }
 .node-table tbody tr.row-selected td { background: rgba(59, 130, 246, 0.08); }
+.node-table tbody tr.row-invalid td { background: rgba(239, 68, 68, 0.06); }
+.node-table tbody tr.row-invalid.row-selected td { background: rgba(239, 68, 68, 0.14); }
+.cell-invalid { color: #b91c1c; font-weight: 600; }
+.cell-invalid svg { vertical-align: -1px; margin-right: 3px; }
 
 /* Sortable column headers (Log Management) */
 .log-sort-btn {
