@@ -12,9 +12,15 @@ import calibrationProfilesRouter from './routes/calibrationProfiles.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+// Comma-separated so prod can stay locked to its own domain while still
+// letting a developer's local frontend (VITE_BACKEND_URL pointed at prod)
+// call this same backend directly.
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
-app.use(cors({ origin: CORS_ORIGIN }));
+app.use(cors({ origin: CORS_ORIGINS }));
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
