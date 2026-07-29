@@ -445,6 +445,11 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .weather-loading-detail { font-size: 12px; font-weight: 600; color: var(--accent-blue-dark); }
 .weather-loading-hint { font-size: 11px; color: var(--text-muted); max-width: 420px; line-height: 1.6; }
 
+/* ── Full-page loading state (waiting on the first backend response) ── */
+.app-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 70vh; padding: 24px; text-align: center; }
+.app-loading-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.app-loading-hint { font-size: 12px; color: var(--text-muted); max-width: 420px; line-height: 1.6; }
+
 /* ── Settings page — top row: Ambient Weather + Calibration Constants side
    by side (two equal columns); bottom row: Sensor Nodes full width (it's a
    wide table, benefits most from the full page width). Stacks to one column

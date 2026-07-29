@@ -1,6 +1,6 @@
 /**
  * Pipeline A (โหนดเซนเซอร์ความชื้นดิน) — เรียก backend ของเราเอง ซึ่งอ่านจาก simp-database
- * (Postgres: ตาราง nodes + node_log) แล้ว reshape ให้ตรงกับ src/data/mockSoilNodes.js อยู่แล้ว
+ * (Postgres: ตาราง nodes + node_log) แล้ว reshape เป็น { [nodeCode]: { timestamps, kpa, vwc, awc, meta } }
  * (kPa/VWC/%AWC คำนวณไว้ล่วงหน้าตอน migrate ข้อมูล ไม่ต้องแปลงจาก ADC ที่นี่อีก)
  */
 
