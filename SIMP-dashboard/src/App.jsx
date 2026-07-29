@@ -4,6 +4,7 @@ import TopNav from './components/layout/TopNav';
 import Footer from './components/layout/Footer';
 import LoadingScreen from './components/layout/LoadingScreen';
 import GraphDashboardPage from './pages/GraphDashboardPage';
+import LatestReadingsPage from './pages/LatestReadingsPage';
 import BatteryStatusPage from './pages/BatteryStatusPage';
 import LogManagementPage from './pages/LogManagementPage';
 import CalibrationLogPage from './pages/CalibrationLogPage';
@@ -80,6 +81,15 @@ export default function App() {
               waterBalance={filteredWaterBalance}
               nodeSelection={nodeSelection}
               weatherToggle={weatherToggle}
+            />
+          )}
+          {activePage === 'latest' && (
+            <LatestReadingsPage
+              nodeIds={nodeSelection.nodeIds}
+              soilNodes={soilNodes}
+              weatherSummary={weatherSummary}
+              weatherLoading={weatherLoading}
+              weatherProgress={weatherProgress}
             />
           )}
           {activePage === 'battery' && <BatteryStatusPage nodeIds={nodeSelection.nodeIds} soilNodes={soilNodes} />}

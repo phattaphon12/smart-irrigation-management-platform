@@ -138,6 +138,95 @@ export function IconLogs({ size = 16, ...props }) {
   );
 }
 
+export function IconClock({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <circle cx="10" cy="10" r="7.2" />
+      <path d="M10 6v4.2l3 2" />
+    </svg>
+  );
+}
+
+export function IconSun({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <circle cx="10" cy="10" r="3.2" />
+      <line x1="10" y1="2.3" x2="10" y2="4.3" />
+      <line x1="10" y1="15.7" x2="10" y2="17.7" />
+      <line x1="2.3" y1="10" x2="4.3" y2="10" />
+      <line x1="15.7" y1="10" x2="17.7" y2="10" />
+      <line x1="4.7" y1="4.7" x2="6.1" y2="6.1" />
+      <line x1="13.9" y1="13.9" x2="15.3" y2="15.3" />
+      <line x1="4.7" y1="15.3" x2="6.1" y2="13.9" />
+      <line x1="13.9" y1="6.1" x2="15.3" y2="4.7" />
+    </svg>
+  );
+}
+
+export function IconDroplet({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M10 2.6C10 2.6 4.7 9.1 4.7 12.6a5.3 5.3 0 0 0 10.6 0C15.3 9.1 10 2.6 10 2.6z" />
+    </svg>
+  );
+}
+
+export function IconCloudRain({ size = 16, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M5.8 9.6a3.4 3.4 0 1 1 0.9-6.7A4.4 4.4 0 0 1 15 6.4a2.9 2.9 0 0 1-0.4 5.8H5.8z" />
+      <line x1="7" y1="13.3" x2="6.1" y2="15.8" />
+      <line x1="10.2" y1="13.3" x2="9.3" y2="15.8" />
+      <line x1="13.4" y1="13.3" x2="12.5" y2="15.8" />
+    </svg>
+  );
+}
+
+export function IconCheckCircle({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <circle cx="10" cy="10" r="7.2" />
+      <path d="M6.8 10.2l2.1 2.1 4.3-4.6" />
+    </svg>
+  );
+}
+
+export function IconWifiOff({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <line x1="3" y1="3" x2="17" y2="17" />
+      <path d="M5.5 8.2a10 10 0 0 1 4-1.9" />
+      <path d="M12 6.4a10 10 0 0 1 2.5 1.8" />
+      <path d="M7.7 10.8a5.5 5.5 0 0 1 2.2-1" />
+      <path d="M11 11.7a5.5 5.5 0 0 1 1.3 1" />
+      <circle cx="10" cy="15" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconSignal({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <line x1="4" y1="15" x2="4" y2="12" />
+      <line x1="8" y1="15" x2="8" y2="9" />
+      <line x1="12" y1="15" x2="12" y2="6" />
+      <line x1="16" y1="15" x2="16" y2="3" />
+    </svg>
+  );
+}
+
+export function IconRuler({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <rect x="3" y="7" width="14" height="6" rx="1.2" />
+      <line x1="6" y1="7" x2="6" y2="9.3" />
+      <line x1="9" y1="7" x2="9" y2="9.3" />
+      <line x1="12" y1="7" x2="12" y2="9.3" />
+      <line x1="15" y1="7" x2="15" y2="9.3" />
+    </svg>
+  );
+}
+
 export function IconGauge({ size = 16, ...props }) {
   return (
     <svg width={size} height={size} {...BASE_PROPS} {...props}>

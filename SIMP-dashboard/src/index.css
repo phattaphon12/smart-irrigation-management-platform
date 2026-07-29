@@ -362,7 +362,18 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
 .bc-pct { font-weight: 700; }
 .bc-days { color: var(--text-muted); font-weight: 500; }
 .bc-offline { opacity: 0.6; }
-.bdg { display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; }
+
+/* ── Latest Readings — weather stat cards ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.stat-card { display: flex; align-items: center; gap: 12px; background: var(--bg); border-radius: var(--radius-md); padding: 14px 16px; box-shadow: var(--inset-sm); }
+.stat-icon { width: 40px; height: 40px; min-width: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--raised-sm); }
+.stat-icon-amber { background: #fef3c7; color: #b45309; }
+.stat-icon-green { background: #dcfce7; color: #15803d; }
+.stat-icon-sky { background: #e0f2fe; color: #0369a1; }
+.stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.stat-unit { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+.bdg { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 600; }
 .bdg-ok { background: #dcfce7; color: #15803d; }
 .bdg-warn { background: #fef3c7; color: #b45309; }
 .bdg-crit { background: #fee2e2; color: #b91c1c; }
