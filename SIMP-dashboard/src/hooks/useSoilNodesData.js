@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
-import { SOIL_NODES_MOCK } from '../data/mockSoilNodes';
 import { fetchSoilNodes } from '../lib/api/soilNodeClient';
 
 const POLL_MS = 60000; // dashboard refresh rate — field nodes themselves report every ~15 min (dev_reference_sensor_et_v1.md §1)
 
 /**
- * ข้อมูลโหนดเซนเซอร์ความชื้นดิน — เริ่มด้วย mock (ให้ UI ใช้งานได้ทันทีระหว่างรอ fetch) แล้วลอง
- * ดึงจริงจาก backend (simp-database) เสมอ ถ้าสำเร็จค่อยสลับไปใช้ข้อมูลจริง ถ้า backend/DB ไม่พร้อม
- * ก็ fallback ค้างที่ mock พร้อม error message แทนที่จะทำให้ dashboard พัง
+ * ข้อมูลโหนดเซนเซอร์ความชื้นดิน — ดึงจาก backend (simp-database) เสมอ
+ * ระหว่างรอ fetch แรก App.jsx จะโชว์ LoadingScreen แทน (ดู `loading`) แทนที่จะโชว์ข้อมูลปลอม
  *
  * Polls every POLL_MS so newly-ingested readings show up without a manual
  * page reload. A failed poll (network blip, backend restart) keeps showing
- * the last-known-good data instead of flashing back to mock/error — only
- * the very first load falls back to mock on failure.
+ * the last-known-good data instead of clearing it — only the very first
+ * load attempt is reflected in `error`/`loading`.
  */
 export function useSoilNodesData() {
-  const [nodes, setNodes] = useState(SOIL_NODES_MOCK);
-  const [source, setSource] = useState('mock');
+  const [nodes, setNodes] = useState({});
   const [error, setError] = useState(null);
+  // True only until the first fetch attempt settles (success or failure) — lets
+  // the caller show a loading screen instead of an empty/broken dashboard.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,14 +27,14 @@ export function useSoilNodesData() {
         const live = await fetchSoilNodes();
         if (!cancelled && live && Object.keys(live).length > 0) {
           setNodes(live);
-          setSource('live');
           if (isInitial) setError(null);
         }
       } catch (err) {
         if (!cancelled && isInitial) {
           setError(err.message);
-          setSource('mock'); // fallback (initial load only)
         }
+      } finally {
+        if (!cancelled && isInitial) setLoading(false);
       }
     };
 
@@ -47,5 +47,5 @@ export function useSoilNodesData() {
     };
   }, []);
 
-  return { nodes, source, error };
+  return { nodes, error, loading };
 }

@@ -33,7 +33,7 @@ services:
       - mqtt
     environment:
       PORT: 4000
-      CORS_ORIGIN: http://simp.eng.kmitl.ac.th
+      CORS_ORIGIN: http://simp.eng.kmitl.ac.th,http://localhost:5173,http://localhost:4173
       PGHOST: db
       PGPORT: 5432
       PGUSER: ${APP_DB_USER}

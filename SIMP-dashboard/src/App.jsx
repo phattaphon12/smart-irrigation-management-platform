@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Header from './components/layout/Header';
 import TopNav from './components/layout/TopNav';
 import Footer from './components/layout/Footer';
+import LoadingScreen from './components/layout/LoadingScreen';
 import GraphDashboardPage from './pages/GraphDashboardPage';
 import BatteryStatusPage from './pages/BatteryStatusPage';
 import LogManagementPage from './pages/LogManagementPage';
@@ -21,7 +22,7 @@ import { formatDateTime } from './utils/formatters';
 export default function App() {
   const [activePage, setActivePage] = useState('graphs');
 
-  const { nodes: soilNodes, error: soilError } = useSoilNodesData();
+  const { nodes: soilNodes, error: soilError, loading: soilLoading } = useSoilNodesData();
   const { summary: weatherSummary, waterBalance, loading: weatherLoading, progress: weatherProgress, error: weatherError } = useWeatherData();
 
   // Two separate freshness signals rather than one blanket "Last Updated" —
@@ -62,25 +63,31 @@ export default function App() {
         </div>
       )}
 
-      {activePage === 'graphs' && (
-        <GraphDashboardPage
-          soilNodes={soilNodes}
-          nodeIds={nodeSelection.nodeIds}
-          labels={filteredLabels}
-          timeRange={timeRange}
-          onChangeTimeRange={setTimeRange}
-          weatherSummary={filteredWeatherSummary}
-          weatherLoading={weatherLoading}
-          weatherProgress={weatherProgress}
-          waterBalance={filteredWaterBalance}
-          nodeSelection={nodeSelection}
-          weatherToggle={weatherToggle}
-        />
+      {soilLoading ? (
+        <LoadingScreen />
+      ) : (
+        <>
+          {activePage === 'graphs' && (
+            <GraphDashboardPage
+              soilNodes={soilNodes}
+              nodeIds={nodeSelection.nodeIds}
+              labels={filteredLabels}
+              timeRange={timeRange}
+              onChangeTimeRange={setTimeRange}
+              weatherSummary={filteredWeatherSummary}
+              weatherLoading={weatherLoading}
+              weatherProgress={weatherProgress}
+              waterBalance={filteredWaterBalance}
+              nodeSelection={nodeSelection}
+              weatherToggle={weatherToggle}
+            />
+          )}
+          {activePage === 'battery' && <BatteryStatusPage nodeIds={nodeSelection.nodeIds} soilNodes={soilNodes} />}
+          {activePage === 'logs' && <LogManagementPage nodeIds={nodeSelection.nodeIds} />}
+          {activePage === 'calibration' && <CalibrationLogPage nodeIds={nodeSelection.nodeIds} />}
+          {activePage === 'settings' && <SettingsPage />}
+        </>
       )}
-      {activePage === 'battery' && <BatteryStatusPage nodeIds={nodeSelection.nodeIds} soilNodes={soilNodes} />}
-      {activePage === 'logs' && <LogManagementPage nodeIds={nodeSelection.nodeIds} />}
-      {activePage === 'calibration' && <CalibrationLogPage nodeIds={nodeSelection.nodeIds} />}
-      {activePage === 'settings' && <SettingsPage />}
 
       <Footer />
     </>
