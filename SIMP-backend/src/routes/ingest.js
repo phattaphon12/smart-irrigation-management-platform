@@ -5,8 +5,10 @@ import { getIngestConfig } from '../config/ingestConfig.js';
 
 /**
  * Receives raw sensor readings pushed by Node-RED, in the same JSON shape the
- * ESP32-H2 firmware itself builds (see the node's snprintf format string):
- *   { "node_id": 10, "RST": 60.00, "RADC": 2032, "BATT": 87.00, "BADC": 3123 }
+ * ESP32-H2 firmware itself builds (see the node's snprintf format string),
+ * plus RSSI which Node-RED adds itself from the LoRaWAN uplink metadata
+ * (not something the sensor firmware reports):
+ *   { "node_id": 3, "RSSI": -91, "RST": 12255.43, "RADC": 1840, "BATT": 82, "BADC": 561 }
  * and lands them in the `log` table (raw ADC). Immediately after, RADC is run
  * through the Watermark/Shock-Seddigh/Van-Genuchten pipeline (adcToAll, §3 of
  * dev_reference_sensor_et_v1.md) and the result is written to `node_log` too,
@@ -40,7 +42,7 @@ function resolveNodeLookup(raw) {
 }
 
 router.post('/log', async (req, res) => {
-  const { node_id: rawNodeId, RST, RADC, BATT, BADC } = req.body || {};
+  const { node_id: rawNodeId, RSSI, RST, RADC, BATT, BADC } = req.body || {};
   const lookup = resolveNodeLookup(rawNodeId);
 
   if (!lookup) {
@@ -62,10 +64,10 @@ router.post('/log', async (req, res) => {
     // once sensors go into real ground, without touching firmware (§4.2).
     const { data_source: dataSource } = getIngestConfig();
     const { rows } = await pool.query(
-      `INSERT INTO log (node_id, rst, radc, batt, badc, data_source, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, now())
+      `INSERT INTO log (node_id, rssi, rst, radc, batt, badc, data_source, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
        RETURNING id, created_at`,
-      [nodeId, numOrNull(RST), radc, batt, numOrNull(BADC), dataSource]
+      [nodeId, numOrNull(RSSI), numOrNull(RST), radc, batt, numOrNull(BADC), dataSource]
     );
     const logId = rows[0].id;
     const recordedAt = rows[0].created_at;

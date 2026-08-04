@@ -4,12 +4,12 @@ import { pool } from '../db/pool.js';
 /**
  * Serves soil sensor node data from simp-database (nodes + node_log tables),
  * reshaped into:
- *   { [nodeCode]: { timestamps, kpa, vwc, awc, rst, meta: { depth, treatment, position, status, flagged, battery } } }
+ *   { [nodeCode]: { timestamps, kpa, vwc, awc, rssi, rst, meta: { depth, treatment, position, status, flagged, battery } } }
  *
- * `rst` (raw on-device resistance, from the `log` table) is included purely as a
- * per-reading diagnostic value — this system doesn't collect a separate LoRaWAN
- * RSSI from the network server, so `rst` is what the Latest Readings page shows
- * in that column.
+ * `rssi` and `rst` both come from the `log` table (raw per-reading values, not
+ * computed by node_log's pipeline): `rssi` is the LoRaWAN signal strength Node-RED
+ * attaches from the uplink metadata; `rst` is the on-device resistance reported
+ * by the sensor firmware itself — unrelated values, both included for reference.
  *
  * `nodes.node_id` is a SERIAL surrogate key (int) used for FKs — the human-facing
  * id ("Node_001") lives in `nodes.node_code` and is what keys the response object
@@ -39,7 +39,7 @@ router.get('/', async (_req, res) => {
       // Joined to log (on node_id + exact recorded_at/created_at) purely to
       // exclude soft-deleted readings (see routes/logs.js) — a deleted row
       // should disappear from the live chart too, not just Log Management.
-      `SELECT nl.node_id, nl.kpa, nl.vwc, nl.awc, nl.battery, l.rst,
+      `SELECT nl.node_id, nl.kpa, nl.vwc, nl.awc, nl.battery, l.rssi, l.rst,
               to_char(nl.recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD"T"HH24:MI:SS') AS date
        FROM node_log nl
        JOIN log l ON l.node_id = nl.node_id AND l.created_at = nl.recorded_at
@@ -56,7 +56,8 @@ router.get('/', async (_req, res) => {
         kpa: [],
         vwc: [],
         awc: [],
-        rst: [], // no separate RSSI is collected — RST (resistance) doubles as the per-reading signal reference
+        rssi: [],
+        rst: [],
         meta: {
           depth: n.depth,
           treatment: n.treatment,
@@ -76,6 +77,7 @@ router.get('/', async (_req, res) => {
       node.kpa.push(r.kpa);
       node.vwc.push(r.vwc);
       node.awc.push(r.awc);
+      node.rssi.push(r.rssi);
       node.rst.push(r.rst);
       if (r.battery != null) node.meta.battery = r.battery; // rows are ascending -> last write wins = most recent
     }

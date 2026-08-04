@@ -82,10 +82,7 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                   <th><span style={TH_ICON_STYLE}><IconGauge size={12} /> kPa</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> VWC</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> %AWC</span></th>
-                  <th
-                    style={TH_ICON_STYLE}
-                    title="No separate LoRaWAN RSSI is collected — this is RST (raw on-device resistance), used as the per-reading signal reference instead."
-                  >
+                  <th style={TH_ICON_STYLE} title="LoRaWAN signal strength (dBm) — attached by Node-RED from the uplink metadata.">
                     <IconSignal size={12} /> RSSI
                   </th>
                   <th><span style={TH_ICON_STYLE}><IconClock size={12} /> Last Reading</span></th>
@@ -112,7 +109,7 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                       <td>{formatNumber(latestOf(node.kpa), 1)}</td>
                       <td>{formatNumber(latestOf(node.vwc), 4)}</td>
                       <td>{formatNumber(latestOf(node.awc), 1)}</td>
-                      <td>{formatNumber(latestOf(node.rst), 0)}</td>
+                      <td>{formatNumber(latestOf(node.rssi), 0)}</td>
                       <td>{last ? formatDateTime(last) : '—'}</td>
                       <td>
                         {offline ? (

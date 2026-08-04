@@ -16,6 +16,7 @@ const COLUMNS = [
   { key: 'created_at', label: 'Timestamp' },
   { key: 'node_code', label: 'Sensor' },
   { key: 'data_source', label: 'Source', title: 'Bench test / field / demo — set on the Settings page, stamped onto readings as they arrive. Not sortable.' },
+  { key: 'rssi', label: 'RSSI', title: 'LoRaWAN signal strength (dBm) attached by Node-RED from the uplink metadata — not reported by the sensor firmware itself.' },
   { key: 'rst', label: 'RST', title: 'Resistance (Ω) computed on-device by the sensor firmware — reported for reference only. Not used by this app’s own kPa/VWC/%AWC pipeline (which derives resistance from RADC instead), so small differences from that recomputed value are expected and not a bug.' },
   { key: 'radc', label: 'RADC' },
   { key: 'batt', label: 'BATT' },
@@ -358,6 +359,7 @@ export default function LogManagementPage({ nodeIds }) {
                         <td>{formatDateTime(row.created_at)}{row.deleted && <span className="bdg bdg-crit" style={{ marginLeft: 6 }}>Deleted</span>}</td>
                         <td style={{ fontWeight: 700 }}>{row.node_code}</td>
                         <td><span className={`bdg ${SOURCE_BADGE_CLASS[row.data_source] || 'bdg'}`}>{SOURCE_LABEL[row.data_source] || row.data_source}</span></td>
+                        <td>{row.rssi ?? '—'}</td>
                         <td className={invalid ? 'cell-invalid' : undefined} title={invalid ? 'Sensor fault — RADC was outside the valid range for this reading' : undefined}>
                           {invalid && <IconWarning size={10} />}{formatNumber(row.rst, 2)}
                         </td>
