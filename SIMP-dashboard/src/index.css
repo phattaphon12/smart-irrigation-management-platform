@@ -469,10 +469,22 @@ h1, h2, h3, .chart-ttl { color: var(--text-primary); font-weight: 700; }
    instead. ── */
 .settings-page { flex: 1; padding: 24px; }
 .settings-page-grid { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-.settings-top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-@media (max-width: 900px) {
-  .settings-top-grid { grid-template-columns: 1fr; }
+
+.settings-menu { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-menu-btn {
+  background: var(--bg);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 9px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--raised-sm);
+  transition: transform 0.15s ease, color 0.15s ease;
 }
+.settings-menu-btn:hover:not(.active) { color: var(--text-primary); transform: translateY(-1px); }
+.settings-menu-btn.active { color: #ffffff; background: var(--gradient-accent); box-shadow: var(--inset-sm); }
 
 /* ── Node management table (Settings page) ── */
 .node-add-form { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #eef4f2; }

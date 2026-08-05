@@ -10,6 +10,15 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const EMPTY_FORM = { apiKey: '', applicationKey: '', stationMac: '' };
 
+const SECTIONS = [
+  { id: 'weather', label: 'Weather API' },
+  { id: 'crop', label: 'Crop Cycle' },
+  { id: 'source', label: 'Data Source' },
+  { id: 'calibration', label: 'Calibration Constants' },
+  { id: 'profiles', label: 'Site Profiles' },
+  { id: 'nodes', label: 'Sensor Nodes' },
+];
+
 // current.apiKey/applicationKey from the API are already server-masked and end in the
 // real last 4 chars (see backend mask()) — show a fixed-width dot run instead of echoing
 // the server's exact star count, which varies with key length and looks noisy.
@@ -18,6 +27,7 @@ function maskedDisplay(serverMasked) {
 }
 
 export default function SettingsPage() {
+  const [activeSection, setActiveSection] = useState('weather');
   const [mode, setMode] = useState('view'); // 'view' | 'edit'
   const [current, setCurrent] = useState(null); // { apiKey, applicationKey, stationMac, apiKeySet, applicationKeySet }
   const [form, setForm] = useState(EMPTY_FORM);
@@ -76,8 +86,20 @@ export default function SettingsPage() {
   return (
     <div className="settings-page">
       <div className="settings-page-grid">
-        <div className="settings-top-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="settings-menu">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`settings-menu-btn${activeSection === s.id ? ' active' : ''}`}
+              onClick={() => setActiveSection(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {activeSection === 'weather' && (
         <div className="chart-card">
           <div className="chart-hd">
             <div>
@@ -176,18 +198,13 @@ export default function SettingsPage() {
             {status && <div className={`settings-status ${status.type}`}>{status.message}</div>}
           </div>
         </div>
+        )}
 
-        <CropConfigCard />
-        <DataSourceCard />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <CalibrationConstantsCard />
-        <SiteProfilesCard />
-        </div>
-        </div>
-
-        <NodeManagementCard />
+        {activeSection === 'crop' && <CropConfigCard />}
+        {activeSection === 'source' && <DataSourceCard />}
+        {activeSection === 'calibration' && <CalibrationConstantsCard />}
+        {activeSection === 'profiles' && <SiteProfilesCard />}
+        {activeSection === 'nodes' && <NodeManagementCard />}
       </div>
     </div>
   );
