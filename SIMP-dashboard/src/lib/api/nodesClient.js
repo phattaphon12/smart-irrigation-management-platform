@@ -35,3 +35,16 @@ export async function deleteNode(nodeId) {
   if (!res.ok) throw new Error(body?.error || `Backend error: HTTP ${res.status}`);
   return body;
 }
+
+// command: 'led' (value: 0|1) or 'time' (value: positive integer minutes) —
+// bridged to the physical device via Node-RED's downlink webhook.
+export async function sendDownlink(nodeId, command, value) {
+  const res = await fetch(`${BACKEND_URL}/api/nodes/${nodeId}/downlink`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command, value }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error || `Backend error: HTTP ${res.status}`);
+  return body;
+}

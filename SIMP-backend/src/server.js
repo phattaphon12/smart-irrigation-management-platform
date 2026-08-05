@@ -9,6 +9,7 @@ import nodesRouter from './routes/nodes.js';
 import logsRouter from './routes/logs.js';
 import tensiometerRouter from './routes/tensiometer.js';
 import calibrationProfilesRouter from './routes/calibrationProfiles.js';
+import downlinkRouter from './routes/downlink.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -32,6 +33,7 @@ app.use('/api/nodes', nodesRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/tensiometer', tensiometerRouter);
 app.use('/api/calibration-profiles', calibrationProfilesRouter);
+app.use('/api/downlink', downlinkRouter);
 
 app.listen(PORT, () => {
   console.log(`sugarcane-backend listening on http://localhost:${PORT}`);

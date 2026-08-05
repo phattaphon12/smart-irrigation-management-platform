@@ -1,6 +1,24 @@
-import { useEffect, useState } from 'react';
-import { fetchNodes, createNode, updateNode, deleteNode } from '../../lib/api/nodesClient';
-import { IconPlus, IconEdit, IconTrash, IconRestore } from '../icons/Icons';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchNodes, createNode, updateNode, deleteNode, sendDownlink } from '../../lib/api/nodesClient';
+import { fetchDownlinkHistory } from '../../lib/api/downlinkClient';
+import { IconPlus, IconEdit, IconTrash, IconRestore, IconChevronDown, IconBulb, IconClock } from '../icons/Icons';
+
+const DOWNLINK_STATUS_LABEL = { pending: 'pending', sent: 'sent', failed: 'failed' };
+const DOWNLINK_STATUS_CLASS = { pending: 'bdg-warn', sent: 'bdg-ok', failed: 'bdg-crit' };
+
+const SORT_COLUMNS = [
+  { key: 'node_id', label: 'Sensor ID' },
+  { key: 'node_code', label: 'Code' },
+  { key: 'name', label: 'Name' },
+  { key: 'depth', label: 'Depth' },
+  { key: 'treatment', label: 'Treatment' },
+  { key: 'position', label: 'Position' },
+  { key: 'status', label: 'Status' },
+  { key: 'flagged', label: 'Flagged' },
+  { key: 'eui', label: 'EUI' },
+  { key: 'dev_addr', label: 'Dev Addr' },
+  { key: 'board_serial', label: 'Board Serial' },
+];
 
 const EMPTY_FORM = {
   node_id: '',
@@ -13,6 +31,7 @@ const EMPTY_FORM = {
   flagged: false,
   eui: '',
   dev_addr: '',
+  board_serial: '',
 };
 
 export default function NodeManagementCard() {
@@ -25,6 +44,11 @@ export default function NodeManagementCard() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('node_id');
+  const [sortDir, setSortDir] = useState('asc'); // 'asc' | 'desc'
+  const [downlinkBusyId, setDownlinkBusyId] = useState(null); // node_id currently sending a downlink command
+  const [downlinkHistory, setDownlinkHistory] = useState([]);
 
   const loadNodes = () => {
     setLoading(true);
@@ -37,7 +61,25 @@ export default function NodeManagementCard() {
       .finally(() => setLoading(false));
   };
 
+  const loadDownlinkHistory = () => {
+    fetchDownlinkHistory().then(setDownlinkHistory).catch(() => {}); // best-effort — doesn't block the node table
+  };
+
   useEffect(loadNodes, []);
+  useEffect(loadDownlinkHistory, []);
+
+  // Most recent command per node, oldest-first history reduced to a lookup —
+  // lets each row show whether Node-RED has actually picked up its last command yet.
+  const latestCommandByNode = useMemo(() => {
+    const map = new Map();
+    for (const row of downlinkHistory) {
+      const existing = map.get(row.node_id);
+      if (!existing || new Date(row.created_at) > new Date(existing.created_at)) {
+        map.set(row.node_id, row);
+      }
+    }
+    return map;
+  }, [downlinkHistory]);
 
   const field = (key) => ({
     value: form[key],
@@ -64,6 +106,7 @@ export default function NodeManagementCard() {
       flagged: n.flagged,
       eui: n.eui || '',
       dev_addr: n.dev_addr || '',
+      board_serial: n.board_serial || '',
     });
     setStatus(null);
     setShowForm(true);
@@ -125,7 +168,70 @@ export default function NodeManagementCard() {
     }
   };
 
-  const visibleNodes = showInactive ? nodes : nodes.filter((n) => n.active);
+  const handleLed = async (n, value) => {
+    setDownlinkBusyId(n.node_id);
+    setStatus(null);
+    try {
+      await sendDownlink(n.node_id, 'led', value);
+      setStatus({ type: 'ok', message: `LED ${value ? 'ON' : 'OFF'} queued for ${n.node_code} — will be sent next time Node-RED checks in` });
+      loadDownlinkHistory();
+    } catch (err) {
+      setStatus({ type: 'err', message: `Failed to queue LED command for ${n.node_code}: ${err.message}` });
+    } finally {
+      setDownlinkBusyId(null);
+    }
+  };
+
+  const handleSetInterval = async (n) => {
+    const input = window.prompt(`Reporting interval for ${n.node_code} (minutes between transmissions):`, '15');
+    if (input == null) return; // cancelled
+    const minutes = Number(input);
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      setStatus({ type: 'err', message: 'Interval must be a positive whole number of minutes' });
+      return;
+    }
+    setDownlinkBusyId(n.node_id);
+    setStatus(null);
+    try {
+      await sendDownlink(n.node_id, 'time', minutes);
+      setStatus({ type: 'ok', message: `${minutes}-minute reporting interval queued for ${n.node_code} — will be sent next time Node-RED checks in` });
+      loadDownlinkHistory();
+    } catch (err) {
+      setStatus({ type: 'err', message: `Failed to queue interval for ${n.node_code}: ${err.message}` });
+    } finally {
+      setDownlinkBusyId(null);
+    }
+  };
+
+  const handleSort = (key) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const visibleNodes = useMemo(() => {
+    let list = showInactive ? nodes : nodes.filter((n) => n.active);
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter((n) => n.node_code?.toLowerCase().includes(q) || n.name?.toLowerCase().includes(q));
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+      if (typeof av === 'boolean' && typeof bv === 'boolean') return Number(av) - Number(bv);
+      return String(av).localeCompare(String(bv), undefined, { numeric: true });
+    });
+    return sortDir === 'asc' ? sorted : sorted.reverse();
+  }, [nodes, showInactive, search, sortKey, sortDir]);
 
   return (
     <div className="chart-card">
@@ -184,6 +290,10 @@ export default function NodeManagementCard() {
                 <label htmlFor="dev_addr">Dev Addr (4 bytes)</label>
                 <input id="dev_addr" className="settings-input" placeholder="7F5B2BE9" maxLength={8} {...field('dev_addr')} />
               </div>
+              <div className="settings-field" style={{ marginBottom: 0 }}>
+                <label htmlFor="board_serial">Board Serial</label>
+                <input id="board_serial" className="settings-input" placeholder="e.g. printed on the board" maxLength={50} {...field('board_serial')} />
+              </div>
               <label className="node-add-flagged" htmlFor="flagged">
                 <input
                   id="flagged"
@@ -207,25 +317,39 @@ export default function NodeManagementCard() {
         {status && <div className={`settings-status ${status.type}`} style={{ marginBottom: 16 }}>{status.message}</div>}
         {loadError && <div className="settings-status err">Failed to load sensor list: {loadError}</div>}
 
+        {!loading && nodes.length > 0 && (
+          <input
+            type="search"
+            className="settings-input"
+            placeholder="Search by code or name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ maxWidth: 280, marginBottom: 14 }}
+          />
+        )}
+
         {loading ? (
           <div className="node-table-empty">Loading…</div>
         ) : visibleNodes.length === 0 ? (
-          <div className="node-table-empty">No sensors yet — click "Add Sensor" to add the first one</div>
+          <div className="node-table-empty">
+            {search.trim() ? `No sensors match "${search.trim()}"` : 'No sensors yet — click "Add Sensor" to add the first one'}
+          </div>
         ) : (
           <div className="node-table-wrap">
             <table className="node-table">
               <thead>
                 <tr>
-                  <th>Sensor ID</th>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Depth</th>
-                  <th>Treatment</th>
-                  <th>Position</th>
-                  <th>Status</th>
-                  <th>Flagged</th>
-                  <th>EUI</th>
-                  <th>Dev Addr</th>
+                  {SORT_COLUMNS.map((col) => (
+                    <th key={col.key}>
+                      <button type="button" className="log-sort-btn" onClick={() => handleSort(col.key)}>
+                        {col.label}
+                        {sortKey === col.key && (
+                          <IconChevronDown size={11} className={sortDir === 'asc' ? 'log-sort-asc' : undefined} />
+                        )}
+                      </button>
+                    </th>
+                  ))}
+                  <th title="Sends a live command to the device via Node-RED — not saved to this app's database">Device</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -250,6 +374,51 @@ export default function NodeManagementCard() {
                     </td>
                     <td>{n.eui || '—'}</td>
                     <td>{n.dev_addr || '—'}</td>
+                    <td>{n.board_serial || '—'}</td>
+                    <td>
+                      {n.active ? (
+                        <div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              className="f-btn"
+                              title="Turn LED on"
+                              onClick={() => handleLed(n, 1)}
+                              disabled={downlinkBusyId === n.node_id}
+                            >
+                              <IconBulb size={12} /> On
+                            </button>
+                            <button
+                              className="f-btn"
+                              title="Turn LED off"
+                              onClick={() => handleLed(n, 0)}
+                              disabled={downlinkBusyId === n.node_id}
+                            >
+                              <IconBulb size={12} /> Off
+                            </button>
+                            <button
+                              className="f-btn"
+                              title="Set reporting interval (minutes)"
+                              onClick={() => handleSetInterval(n)}
+                              disabled={downlinkBusyId === n.node_id}
+                            >
+                              <IconClock size={12} />
+                            </button>
+                          </div>
+                          {latestCommandByNode.has(n.node_id) && (() => {
+                            const cmd = latestCommandByNode.get(n.node_id);
+                            return (
+                              <div style={{ marginTop: 6, fontSize: 10 }} title={cmd.error || undefined}>
+                                <span className={`bdg ${DOWNLINK_STATUS_CLASS[cmd.status] || 'bdg-offline'}`}>
+                                  {cmd.command}={cmd.value} · {DOWNLINK_STATUS_LABEL[cmd.status] || cmd.status}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {n.active ? (

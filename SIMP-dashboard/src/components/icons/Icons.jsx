@@ -227,6 +227,15 @@ export function IconRuler({ size = 14, ...props }) {
   );
 }
 
+export function IconBulb({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M10 3a5 5 0 0 0-2.6 9.3c.4.25.6.7.6 1.2v.5h4v-.5c0-.5.2-.95.6-1.2A5 5 0 0 0 10 3z" />
+      <line x1="8.2" y1="16.5" x2="11.8" y2="16.5" />
+    </svg>
+  );
+}
+
 export function IconGauge({ size = 16, ...props }) {
   return (
     <svg width={size} height={size} {...BASE_PROPS} {...props}>
