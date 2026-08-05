@@ -21,6 +21,7 @@ const COLUMNS = [
   { key: 'radc', label: 'RADC' },
   { key: 'batt', label: 'BATT' },
   { key: 'badc', label: 'BADC' },
+  { key: 'led', label: 'LED', title: 'On-device LED indicator state reported with the reading.' },
   { key: 'kpa', label: 'kPa' },
   { key: 'vwc', label: 'VWC' },
   { key: 'awc', label: '%AWC' },
@@ -368,6 +369,11 @@ export default function LogManagementPage({ nodeIds }) {
                         </td>
                         <td>{row.batt ?? '—'}</td>
                         <td>{row.badc ?? '—'}</td>
+                        <td>
+                          {row.led == null ? '—' : (
+                            <span className={`bdg ${row.led ? 'bdg-ok' : 'bdg-offline'}`}>{row.led ? 'ON' : 'OFF'}</span>
+                          )}
+                        </td>
                         <td>{row.kpa != null ? formatNumber(row.kpa, 1) : '—'}</td>
                         <td>{row.vwc != null ? formatNumber(row.vwc, 4) : '—'}</td>
                         <td>{row.awc != null ? formatNumber(row.awc, 1) : '—'}</td>

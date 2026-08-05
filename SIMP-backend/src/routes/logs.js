@@ -21,7 +21,7 @@ import { adcToAll } from '../lib/soilMoisture.js';
 const router = Router();
 
 const LIST_QUERY = `
-  SELECT l.id, l.node_id, n.node_code, l.rssi, l.rst, l.radc, l.batt, l.badc, l.created_at, l.deleted, l.data_source,
+  SELECT l.id, l.node_id, n.node_code, l.rssi, l.rst, l.radc, l.batt, l.badc, l.led, l.created_at, l.deleted, l.data_source,
          nl.id AS node_log_id, nl.kpa, nl.vwc, nl.awc
   FROM log l
   JOIN nodes n ON n.node_id = l.node_id
@@ -38,6 +38,7 @@ const SORTABLE_COLUMNS = {
   radc: 'l.radc',
   batt: 'l.batt',
   badc: 'l.badc',
+  led: 'l.led',
   kpa: 'nl.kpa',
   vwc: 'nl.vwc',
   awc: 'nl.awc',
@@ -198,7 +199,7 @@ function csvField(v) {
 router.get('/export.csv', async (_req, res) => {
   try {
     const { rows } = await pool.query(`${LIST_QUERY} WHERE l.deleted = false ORDER BY l.created_at DESC`);
-    const header = ['id', 'node_id', 'node_code', 'rssi', 'rst', 'radc', 'batt', 'badc', 'data_source', 'created_at', 'kpa', 'vwc', 'awc'];
+    const header = ['id', 'node_id', 'node_code', 'rssi', 'rst', 'radc', 'batt', 'badc', 'led', 'data_source', 'created_at', 'kpa', 'vwc', 'awc'];
     const lines = [header.join(',')];
     for (const r of rows) {
       lines.push(header.map((col) => csvField(r[col])).join(','));
