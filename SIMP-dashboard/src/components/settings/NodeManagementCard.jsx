@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchNodes, createNode, updateNode, deleteNode, sendDownlink } from '../../lib/api/nodesClient';
 import { fetchDownlinkHistory } from '../../lib/api/downlinkClient';
-import { IconPlus, IconEdit, IconTrash, IconRestore, IconChevronDown, IconBulb, IconClock } from '../icons/Icons';
+import { IconPlus, IconEdit, IconTrash, IconRestore, IconChevronDown, IconBulb, IconClock, IconDownload } from '../icons/Icons';
 
 const DOWNLINK_STATUS_LABEL = { pending: 'pending', sent: 'sent', failed: 'failed' };
 const DOWNLINK_STATUS_CLASS = { pending: 'bdg-warn', sent: 'bdg-ok', failed: 'bdg-crit' };
+const DOWNLINK_POLL_MS = 10000; // Node-RED itself only polls /pending every 60-120s, but refreshing here more often keeps the "pending -> sent" transition feeling near-instant once it does
 
 const SORT_COLUMNS = [
   { key: 'node_id', label: 'Sensor ID' },
@@ -66,7 +67,11 @@ export default function NodeManagementCard() {
   };
 
   useEffect(loadNodes, []);
-  useEffect(loadDownlinkHistory, []);
+  useEffect(() => {
+    loadDownlinkHistory();
+    const intervalId = setInterval(loadDownlinkHistory, DOWNLINK_POLL_MS);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Most recent command per node, oldest-first history reduced to a lookup —
   // lets each row show whether Node-RED has actually picked up its last command yet.
@@ -241,6 +246,14 @@ export default function NodeManagementCard() {
           <div className="chart-sub">All sensor nodes registered in the database</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <a
+            className="f-btn"
+            href="/firmware/Watermark_LoRa_ESP32H2.zip"
+            download
+            title="Download the ESP32-H2 LoRa sensor firmware source (zip) to build/flash locally"
+          >
+            <IconDownload size={13} /> Firmware
+          </a>
           <button className="f-btn" onClick={() => setShowInactive((s) => !s)}>
             {showInactive ? 'Hide Inactive' : 'Show Inactive'}
           </button>

@@ -4,12 +4,13 @@ import { pool } from '../db/pool.js';
 /**
  * Serves soil sensor node data from simp-database (nodes + node_log tables),
  * reshaped into:
- *   { [nodeCode]: { timestamps, kpa, vwc, awc, rssi, rst, meta: { depth, treatment, position, status, flagged, battery } } }
+ *   { [nodeCode]: { timestamps, kpa, vwc, awc, rssi, rst, led, meta: { name, depth, treatment, position, status, flagged, battery } } }
  *
- * `rssi` and `rst` both come from the `log` table (raw per-reading values, not
- * computed by node_log's pipeline): `rssi` is the LoRaWAN signal strength Node-RED
- * attaches from the uplink metadata; `rst` is the on-device resistance reported
- * by the sensor firmware itself — unrelated values, both included for reference.
+ * `rssi`, `rst` and `led` all come from the `log` table (raw per-reading values,
+ * not computed by node_log's pipeline): `rssi` is the LoRaWAN signal strength
+ * Node-RED attaches from the uplink metadata; `rst` is the on-device resistance
+ * reported by the sensor firmware itself; `led` is the device's reported LED
+ * state (0/1) — unrelated values, all included for reference.
  *
  * `nodes.node_id` is a SERIAL surrogate key (int) used for FKs — the human-facing
  * id ("Node_001") lives in `nodes.node_code` and is what keys the response object
@@ -26,7 +27,7 @@ const router = Router();
 router.get('/', async (_req, res) => {
   try {
     const { rows: nodeRows } = await pool.query(
-      'SELECT node_id, node_code, depth, treatment, position, status, flagged FROM nodes WHERE active ORDER BY node_code'
+      'SELECT node_id, node_code, name, depth, treatment, position, status, flagged FROM nodes WHERE active ORDER BY node_code'
     );
     const { rows: logRows } = await pool.query(
       // recorded_at is stored as timestamptz (UTC instant) — AT TIME ZONE 'Asia/Bangkok'
@@ -39,7 +40,7 @@ router.get('/', async (_req, res) => {
       // Joined to log (on node_id + exact recorded_at/created_at) purely to
       // exclude soft-deleted readings (see routes/logs.js) — a deleted row
       // should disappear from the live chart too, not just Log Management.
-      `SELECT nl.node_id, nl.kpa, nl.vwc, nl.awc, nl.battery, l.rssi, l.rst,
+      `SELECT nl.node_id, nl.kpa, nl.vwc, nl.awc, nl.battery, l.rssi, l.rst, l.led,
               to_char(nl.recorded_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD"T"HH24:MI:SS') AS date
        FROM node_log nl
        JOIN log l ON l.node_id = nl.node_id AND l.created_at = nl.recorded_at
@@ -58,7 +59,9 @@ router.get('/', async (_req, res) => {
         awc: [],
         rssi: [],
         rst: [],
+        led: [],
         meta: {
+          name: n.name || n.node_code,
           depth: n.depth,
           treatment: n.treatment,
           position: n.position || '',
@@ -79,6 +82,7 @@ router.get('/', async (_req, res) => {
       node.awc.push(r.awc);
       node.rssi.push(r.rssi);
       node.rst.push(r.rst);
+      node.led.push(r.led);
       if (r.battery != null) node.meta.battery = r.battery; // rows are ascending -> last write wins = most recent
     }
 

@@ -19,7 +19,7 @@ export default function BatteryGrid({ nodeIds, soilNodes }) {
           <div className={`bc${offline ? ' bc-offline' : ''}`} key={nodeId}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
-                <div className="bc-name" style={{ color: colorForNodeIndex(nodeIndexFromId(nodeId)) }}>{nodeId.replace('Node_', 'Sensor ')}</div>
+                <div className="bc-name" style={{ color: colorForNodeIndex(nodeIndexFromId(nodeId)) }}>{meta.name || nodeId}</div>
                 <div className="bc-zone">{meta.treatment} · {meta.depth}cm</div>
               </div>
               <span className={`bdg bdg-${offline ? 'offline' : status.level === 'ok' ? 'ok' : status.level === 'warn' ? 'warn' : 'crit'}`}>{status.label}</span>

@@ -54,7 +54,7 @@ export default function BatteryLevelChart({ nodeIds, soilNodes }) {
                 textAnchor="middle"
                 transform={`rotate(-40, ${xx + innerBarW / 2}, 212)`}
               >
-                {nodeId.replace('Node_', 'S')}
+                {soilNodes[nodeId].meta.name || nodeId}
               </text>
               <rect
                 x={MARGIN_LEFT + barGroupW * idx}
@@ -76,7 +76,7 @@ export default function BatteryLevelChart({ nodeIds, soilNodes }) {
         visible={!!hover}
         x={hover?.mouseX ?? 0}
         y={hover?.mouseY ?? 0}
-        title={hover ? hover.nodeId.replace('_', ' ') : ''}
+        title={hover ? (hoverMeta.name || hover.nodeId) : ''}
         lines={
           hoverMeta
             ? [

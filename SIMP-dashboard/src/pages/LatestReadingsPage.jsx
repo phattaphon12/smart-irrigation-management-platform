@@ -3,7 +3,7 @@ import { formatNumber, formatDateTime, formatShortDate } from '../utils/formatte
 import { isNodeOffline, isNodeStuckAtFloor, lastReadingTime } from '../utils/nodeStatus';
 import {
   IconSun, IconDroplet, IconCloudRain, IconCheckCircle, IconWarning, IconWifiOff,
-  IconSignal, IconRuler, IconGauge, IconClock,
+  IconSignal, IconRuler, IconGauge, IconClock, IconBulb,
 } from '../components/icons/Icons';
 
 function latestOf(arr) {
@@ -66,7 +66,7 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
         <div className="chart-hd">
           <div>
             <div className="chart-ttl">Sensor Nodes — Latest Reading</div>
-            <div className="chart-sub">Most recent kPa / VWC / %AWC / RSSI per sensor — not a historical view</div>
+            <div className="chart-sub">Most recent kPa / VWC / %AWC / RSSI / LED per sensor — not a historical view</div>
           </div>
         </div>
         {nodeIds.length === 0 ? (
@@ -82,8 +82,11 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                   <th><span style={TH_ICON_STYLE}><IconGauge size={12} /> kPa</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> VWC</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> %AWC</span></th>
-                  <th style={TH_ICON_STYLE} title="LoRaWAN signal strength (dBm) — attached by Node-RED from the uplink metadata.">
-                    <IconSignal size={12} /> RSSI
+                  <th style={TH_ICON_STYLE} title="LoRaWAN signal strength (dB) — attached by Node-RED from the uplink metadata.">
+                    <IconSignal size={12} /> RSSI (dB)
+                  </th>
+                  <th style={TH_ICON_STYLE} title="LED state reported by the device with this reading — not necessarily the same as the last downlink command sent from Settings.">
+                    <IconBulb size={12} /> LED
                   </th>
                   <th><span style={TH_ICON_STYLE}><IconClock size={12} /> Last Reading</span></th>
                   <th>Status</th>
@@ -101,7 +104,7 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                       <td style={{ fontWeight: 700 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <IconGauge size={13} style={{ color: 'var(--accent-green-dark)', flexShrink: 0 }} />
-                          {id.replace('Node_', 'S')}
+                          {node.meta.name || id}
                         </span>
                       </td>
                       <td>{node.meta.depth}cm</td>
@@ -109,7 +112,14 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                       <td>{formatNumber(latestOf(node.kpa), 1)}</td>
                       <td>{formatNumber(latestOf(node.vwc), 4)}</td>
                       <td>{formatNumber(latestOf(node.awc), 1)}</td>
-                      <td>{formatNumber(latestOf(node.rssi), 0)}</td>
+                      <td>{formatNumber(latestOf(node.rssi), 0)}{latestOf(node.rssi) == null ? '' : ' dB'}</td>
+                      <td>
+                        {(() => {
+                          const led = latestOf(node.led);
+                          if (led == null) return '—';
+                          return <span className={`bdg ${led ? 'bdg-ok' : 'bdg-offline'}`}>{led ? 'ON' : 'OFF'}</span>;
+                        })()}
+                      </td>
                       <td>{last ? formatDateTime(last) : '—'}</td>
                       <td>
                         {offline ? (

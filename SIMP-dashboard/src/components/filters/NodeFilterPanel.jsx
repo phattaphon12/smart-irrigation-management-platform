@@ -62,7 +62,7 @@ export default function NodeFilterPanel({
             >
               <span className="nm" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 {meta.flagged && <IconWarning size={10} />}
-                {nodeId.replace('Node_', 'S')}
+                {meta.name || nodeId}
               </span>
               {offline ? (
                 <span className="offline-tag">Offline</span>

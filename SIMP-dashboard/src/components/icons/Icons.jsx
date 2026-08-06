@@ -245,3 +245,13 @@ export function IconGauge({ size = 16, ...props }) {
     </svg>
   );
 }
+
+export function IconDownload({ size = 14, ...props }) {
+  return (
+    <svg width={size} height={size} {...BASE_PROPS} {...props}>
+      <path d="M10 3v10" />
+      <path d="M6 9.5 10 13.5 14 9.5" />
+      <path d="M3.5 16.5h13" />
+    </svg>
+  );
+}

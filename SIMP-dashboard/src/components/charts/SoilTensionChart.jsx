@@ -116,6 +116,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
       });
       return {
         id,
+        name: node.meta.name || id,
         index,
         coords: segments.flat(),
         pointsList: segments.filter((s) => s.length > 1).map((s) => s.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')),
@@ -157,7 +158,7 @@ export default function SoilTensionChart({ labels, soilNodes, activeNodes, viewM
       .filter((l) => l.byDate.get(labels[hover.idx]) != null)
       .map((l) => ({
         color: colorForNodeIndex(l.index),
-        label: l.id.replace('Node_', 'S') + (l.offline ? ' (offline)' : ''),
+        label: l.name + (l.offline ? ' (offline)' : ''),
         value: `${l.byDate.get(labels[hover.idx]).toFixed(viewMode === 'vwc' ? 4 : 1)}${VIEW_UNIT[viewMode]}`,
       }));
   }, [hover, lines, labels, viewMode]);
