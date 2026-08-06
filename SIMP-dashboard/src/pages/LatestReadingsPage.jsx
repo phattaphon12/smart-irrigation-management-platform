@@ -82,11 +82,11 @@ export default function LatestReadingsPage({ nodeIds, soilNodes, weatherSummary,
                   <th><span style={TH_ICON_STYLE}><IconGauge size={12} /> kPa</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> VWC</span></th>
                   <th><span style={TH_ICON_STYLE}><IconDroplet size={12} /> %AWC</span></th>
-                  <th style={TH_ICON_STYLE} title="LoRaWAN signal strength (dB) — attached by Node-RED from the uplink metadata.">
-                    <IconSignal size={12} /> RSSI (dB)
+                  <th title="LoRaWAN signal strength (dB) — attached by Node-RED from the uplink metadata.">
+                    <span style={TH_ICON_STYLE}><IconSignal size={12} /> RSSI (dB)</span>
                   </th>
-                  <th style={TH_ICON_STYLE} title="LED state reported by the device with this reading — not necessarily the same as the last downlink command sent from Settings.">
-                    <IconBulb size={12} /> LED
+                  <th title="LED state reported by the device with this reading — not necessarily the same as the last downlink command sent from Settings.">
+                    <span style={TH_ICON_STYLE}><IconBulb size={12} /> LED</span>
                   </th>
                   <th><span style={TH_ICON_STYLE}><IconClock size={12} /> Last Reading</span></th>
                   <th>Status</th>
